@@ -127,6 +127,13 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         layout = QVBoxLayout()
 
+        # Add bots label at the top
+        self.bots_label = QLabel("Online Bots:")
+        self.bots_label.setStyleSheet("background-color: white; border: 1px solid black;")
+        self.bots_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        self.bots_label.setFixedHeight(100)
+        layout.addWidget(self.bots_label)
+
         new_game_button = QPushButton("New Game")
         new_game_button.clicked.connect(self.new_game)
         layout.addWidget(new_game_button)
@@ -235,10 +242,8 @@ class MainWindow(QMainWindow):
 
     def get_online_bots(self):
         bots = self.lichess_handler.get_online_bots()
+        self.bots_label.setText("Online Bots:\n" + "\n".join(bots[:5]))  # Show first 5 bots
         logging.debug(f"Online bots: {bots}")
-        print("Online bots:")
-        for bot in bots:
-            print(bot)
 
     def update_timer(self):
         if self.current_turn == chess.WHITE:

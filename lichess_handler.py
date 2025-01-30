@@ -64,3 +64,11 @@ class LichessHandler:
     def parse_time_control(self, time_control):
         minutes, increment = map(int, time_control.split('+'))
         return minutes * 60, increment
+
+    def get_online_bots(self):
+        try:
+            online_bots = self.client.bots.online()
+            return [bot['username'] for bot in online_bots]
+        except Exception as e:
+            logging.error(f"Failed to get online bots: {e}")
+            return []
