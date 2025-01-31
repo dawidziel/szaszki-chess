@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Szaszki Chess
+Exec=python3 qt.py
+Icon=${SNAP}/meta/gui/icon.png
+Terminal=false
+Type=Application
+X-Ubuntu-Touch=true

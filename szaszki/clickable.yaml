@@ -1,0 +1,5 @@
+# filepath: /home/dywan/szaszki_chess/szaszki/clickable.yaml
+clickable_minimum_required: 8.0.0
+builder: pure-qml-cmake
+kill: qmlscene
+framework: ubuntu-sdk-20.04

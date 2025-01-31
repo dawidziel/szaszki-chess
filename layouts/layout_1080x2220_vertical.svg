@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1080" height="2220" xmlns="http://www.w3.org/2000/svg">
+    <!-- Top Menu Bar (Single Row) -->
+    <rect x="0" y="0" width="1080" height="80" fill="#FFFFFF" />
+    <!-- Menu buttons in one row -->
+    <rect x="20" y="10" width="250" height="60" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="290" y="10" width="250" height="60" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="560" y="10" width="250" height="60" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="830" y="10" width="250" height="60" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+
+    <!-- Button Labels -->
+    <text x="145" y="48" fill="black" font-size="28" font-family="Palatino">New Game</text>
+    <text x="415" y="48" fill="black" font-size="28" font-family="Palatino">Play vs Bot</text>
+    <text x="685" y="48" fill="black" font-size="28" font-family="Palatino">Puzzles</text>
+    <text x="955" y="48" fill="black" font-size="28" font-family="Palatino">Settings</text>
+
+    <!-- Main Chess Board -->
+    <rect x="40" y="100" width="1000" height="1000" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+
+    <!-- Move History Panel -->
+    <rect x="40" y="1120" width="1000" height="400" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+    <text x="540" y="1160" fill="#000000" font-size="32" text-anchor="middle">Move History</text>
+
+    <!-- Navigation -->
+    <rect x="40" y="1540" width="480" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="560" y="1540" width="480" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="280" y="1590" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Previous</text>
+    <text x="800" y="1590" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Next</text>
+
+    <!-- Clocks with clock faces -->
+    <g id="white-clock">
+        <rect x="40" y="1640" width="480" height="180" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+        <circle cx="120" cy="1730" r="40" fill="none" stroke="#000000" stroke-width="2"/>
+        <line x1="120" y1="1700" x2="120" y2="1730" stroke="#000000" stroke-width="2"/>
+        <line x1="120" y1="1730" x2="150" y2="1730" stroke="#000000" stroke-width="2"/>
+        <text x="300" y="1745" fill="black" font-size="32" font-family="Palatino">05:00</text>
+    </g>
+
+    <g id="black-clock">
+        <rect x="560" y="1640" width="480" height="180" fill="#000000" stroke="#000000" stroke-width="2" />
+        <circle cx="640" cy="1730" r="40" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+        <line x1="640" y1="1700" x2="640" y2="1730" stroke="#FFFFFF" stroke-width="2"/>
+        <line x1="640" y1="1730" x2="670" y2="1730" stroke="#FFFFFF" stroke-width="2"/>
+        <text x="820" y="1745" fill="white" font-size="32" font-family="Palatino">05:00</text>
+    </g>
+</svg>

@@ -1,0 +1,11 @@
+name: szaszki-chess.dywan
+version: 1.0.0
+architecture: all
+framework: ubuntu-sdk-20.04
+description: A chess game with Lichess integration
+maintainer: Your Name <your.email@example.com>
+title: Szaszki Chess
+hooks:
+  szaszki-chess:
+    desktop: szaszki-chess.desktop
+    apparmor: szaszki-chess.apparmor

@@ -1,4 +1,12 @@
 # Ignore configuration files
 config.*
 *.drawio
+*.json
+click/
+build/
 *pycache*
+.github/workflows/test.yml
+__pycache__/lichess_handler.cpython-312.pyc
+__init__.py
+__pycache__/lichess_handler.cpython-312.pyc
+__pycache__/lichess_handler.cpython-312.pyc

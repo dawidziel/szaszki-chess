@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+    <!-- Main Chess Board -->
+    <rect x="20" y="40" width="1000" height="1000" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+
+    <!-- Right Panel -->
+    <rect x="1040" y="40" width="860" height="1000" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+
+    <!-- Move History -->
+    <rect x="1060" y="60" width="820" height="700" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
+    <text x="1470" y="90" fill="#000000" font-size="32" font-family="Palatino" text-anchor="middle">Move History</text>
+
+    <!-- Navigation Controls -->
+    <rect x="1060" y="780" width="400" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="1480" y="780" width="400" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="1260" y="830" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Previous</text>
+    <text x="1680" y="830" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Next</text>
+
+    <!-- Timer Display -->
+    <rect x="1060" y="880" width="400" height="120" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+    <rect x="1480" y="880" width="400" height="120" fill="#000000" stroke="#000000" stroke-width="2" />
+</svg>
