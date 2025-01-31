@@ -4,11 +4,17 @@ import chess.pgn
 import time
 import io
 import logging
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QMenuBar
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QAction
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QUrl
+from PyQt6.QtQml import QQmlApplicationEngine
+from ubuntu_components import *
 from lichess_handler import LichessHandler
 from config import lichess_token
+from layout_manager import LayoutManager
+from custom_widgets import ClockWidget
+from layout_selector import LayoutSelector
+from PyQt6.QtGui import QScreen, QGuiApplication
+from settings_menu import SettingsMenu
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,14 +29,23 @@ class ChessBoardWidget(QWidget):
         self.setEnabled(True)
 
     def load_pieces(self):
+        import os
         self.pieces = {}
         piece_names = {
             'p': 'pawn', 'r': 'rook', 'n': 'knight', 'b': 'bishop', 'q': 'queen', 'k': 'king',
             'P': 'pawn', 'R': 'rook', 'N': 'knight', 'B': 'bishop', 'Q': 'queen', 'K': 'king'
         }
+        # Get the absolute path to the pieces directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        pieces_dir = os.path.join(current_dir, "pieces")
+
         for piece, name in piece_names.items():
             color = 'white' if piece.isupper() else 'black'
-            self.pieces[piece] = QPixmap(f"pieces/{color}-{name}.png")
+            piece_path = os.path.join(pieces_dir, f"{color}-{name}.png")
+            pixmap = QPixmap(piece_path)
+            if pixmap.isNull():
+                print(f"Failed to load piece image: {piece_path}")
+            self.pieces[piece] = pixmap
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -87,7 +102,8 @@ class ChessBoardWidget(QWidget):
                 self.main_window.current_move_index += 1
                 self.main_window.switch_turn()
                 self.main_window.check_game_result()
-                if self.main_window.playing_vs_bot:
+                # Only send moves to bot if we're in a bot game and not solving puzzles
+                if self.main_window.playing_vs_bot and not self.main_window.solving_puzzle:
                     self.main_window.send_move_to_bot(move)
             self.selected_square = None
         self.update()
@@ -96,113 +112,129 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Chess")
-        self.setFixedSize(800, 800)  # Set the default window size to 800x800
 
+        # Show layout selector
+        self.selected_layout = self.show_layout_selector()
+
+        # Initialize components
         self.board = chess.Board()
         self.board_widget = ChessBoardWidget(self.board, self)
-
         self.lichess_handler = LichessHandler(lichess_token)
+        self.init_ui_elements()
+        self.init_game_state()
+
+        # Apply selected layout
+        self.layout_manager = LayoutManager(self)
+        self.layout_manager.apply_layout(self.selected_layout)
+
+        # Setup orientation monitoring
+        self.orientation_timer = QTimer()
+        self.orientation_timer.timeout.connect(self.check_orientation)
+        self.orientation_timer.start(1000)  # Check every second
+        self.current_orientation = None
+
+        self.settings_menu = SettingsMenu(self)
+        self.settings_menu.settingsChanged.connect(self.apply_settings)
+        self.is_fullscreen = False
+
+    def init_game_state(self):
         self.playing_vs_bot = False
-
-        self.white_time = 0
-        self.black_time = 0
+        self.manual_game = False
+        self.white_time = 300  # 5 minutes
+        self.black_time = 300
         self.current_turn = chess.WHITE
-        self.timer = QTimer(self)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_clock)
+        self.move_list = []
+        self.solving_puzzle = False  # Add this line
+        self.allowed_moves = None  # Initialize allowed_moves
+        self.current_move_index = 0  # Add this for puzzle moves tracking
+        self.clock_time = 300  # Default 5 minutes
 
-        self.allowed_moves = None
-        self.current_move_index = 0
-        self.solution_moves = []  # Initialize solution_moves
+    def update_clock(self):
+        if self.manual_game:
+            if self.current_turn == chess.WHITE:
+                self.white_time = max(0, self.white_time - 1)
+                if self.white_time <= 0:
+                    self.game_over("Black wins on time!")
+                self.white_clock.seconds_remaining = self.white_time
+            else:
+                self.black_time = max(0, self.black_time - 1)
+                if self.black_time <= 0:
+                    self.game_over("White wins on time!")
+                self.black_clock.seconds_remaining = self.black_time
 
-        self.print_lichess_handler_attributes()
+            self.white_clock.update()
+            self.black_clock.update()
 
-        self.init_ui()
+    def show_layout_selector(self):
+        selector = LayoutSelector(self)
+        if selector.exec():
+            return selector.get_selected_layout()
+        return "layout_1920x1440_horizontal"
 
-    def print_lichess_handler_attributes(self):
-        print(f"LichessHandler Attributes:")
-        print(f"Token Session: {self.lichess_handler.session}")
-        print(f"Client: {self.lichess_handler.client}")
-        print(f"Game ID: {self.lichess_handler.game_id}")
-        print(f"Stream: {self.lichess_handler.stream}")
+    def init_ui_elements(self):
+        # Create clocks
+        self.white_clock = ClockWidget(is_white=True)
+        self.black_clock = ClockWidget(is_white=False)
 
-    def init_ui(self):
-        layout = QVBoxLayout()
-
-        # Add bots label at the top
-        self.bots_label = QLabel("Online Bots:")
-        self.bots_label.setStyleSheet("background-color: white; border: 1px solid black;")
-        self.bots_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
-        self.bots_label.setFixedHeight(100)
-        layout.addWidget(self.bots_label)
-
-        new_game_button = QPushButton("New Game")
-        new_game_button.clicked.connect(self.new_game)
-        layout.addWidget(new_game_button)
-
-        play_vs_bot_button = QPushButton("Play vs Bot")
-        play_vs_bot_button.clicked.connect(self.play_vs_bot)
-        layout.addWidget(play_vs_bot_button)
-
-        get_online_bots_button = QPushButton("Get Online Bots")
-        get_online_bots_button.clicked.connect(self.get_online_bots)
-        layout.addWidget(get_online_bots_button)
-
-        undo_move_button = QPushButton("Undo Move")
-        undo_move_button.clicked.connect(self.undo_move)
-        layout.addWidget(undo_move_button)
-
-        self.white_timer_label = QLabel("White: 05:00")
-        self.white_timer_label.setStyleSheet("background-color: white; border: 1px solid black;")
-        self.white_timer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.white_timer_label)
-
-        self.black_timer_label = QLabel("Black: 05:00")
-        self.black_timer_label.setStyleSheet("background-color: black; color: white; border: 1px solid black;")
-        self.black_timer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.black_timer_label)
-
-        quit_button = QPushButton("Quit")
-        quit_button.clicked.connect(self.close)
-        layout.addWidget(quit_button)
-
-        side_widget = QWidget()
-        side_widget.setLayout(layout)
-        side_widget.setFixedWidth(160)
-
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(self.board_widget)
-        main_layout.addWidget(side_widget)
-
-        container = QWidget()
-        container.setLayout(main_layout)
-        self.setCentralWidget(container)
-
-        # Create menu bar
-        menu_bar = self.menuBar()
-        puzzles_menu = menu_bar.addMenu("Puzzles")
-
-        # Add action for today's puzzles
-        todays_puzzles_action = QAction("Today's Puzzles", self)
-        todays_puzzles_action.triggered.connect(self.show_todays_puzzles)
-        puzzles_menu.addAction(todays_puzzles_action)
-
-        # Add navigation buttons
+        # Create navigation buttons with Palatino font
         self.prev_button = QPushButton("Previous")
-        self.prev_button.clicked.connect(self.prev_move)
-        layout.addWidget(self.prev_button)
-
         self.next_button = QPushButton("Next")
+        for btn in [self.prev_button, self.next_button]:
+            btn.setFont(QFont("Palatino", 32))
+            btn.setFixedHeight(80)
+            btn.setStyleSheet("border: 2px dashed black; background-color: white;")
+
+        # Create move history panel
+        self.move_history = QLabel("Move History")
+        self.move_history.setFont(QFont("Palatino", 32))
+        self.move_history.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Set window background to white
+        self.setStyleSheet("QMainWindow { background-color: white; }")
+
+        # Connect signals
+        self.prev_button.clicked.connect(self.prev_move)
         self.next_button.clicked.connect(self.next_move)
-        layout.addWidget(self.next_button)
+
+    def setup_timer_labels(self):
+        for label in [self.white_timer_label, self.black_timer_label]:
+            label.setFont(QFont("Palatino", 32))
+            label.setFixedHeight(120)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Fixed alignment flag
+
+        self.white_timer_label.setStyleSheet("background-color: white; color: black; border: 2px solid black;")
+        self.black_timer_label.setStyleSheet("background-color: black; color: white; border: 2px solid white;")
+
+    def resizeEvent(self, event):
+        # Disable automatic resizing
+        pass
 
     def new_game(self):
         self.board.reset()
+        self.manual_game = True
         self.playing_vs_bot = False
-        self.white_time = 300  # 5 minutes
-        self.black_time = 300  # 5 minutes
+        self.white_time = self.clock_time
+        self.black_time = self.clock_time
         self.current_turn = chess.WHITE
+        self.move_list = []
+        self.solving_puzzle = False
+
+        # Reset and start clocks
+        self.white_clock.reset(self.clock_time)
+        self.black_clock.reset(self.clock_time)
+        self.white_clock.start()
+        self.black_clock.stop()
+
+        # Start main timer
         self.timer.start(1000)
+
         self.board_widget.setEnabled(True)
         self.board_widget.update()
+        self.move_history.setText("New game started\nWhite to move")
+        self.solving_puzzle = False  # Reset puzzle mode
+        self.allowed_moves = None  # Reset allowed moves for new game
 
     def play_vs_bot(self):
         bot_username = "stockfish"  # Example bot username
@@ -218,6 +250,7 @@ class MainWindow(QMainWindow):
             self.allowed_moves = None  # Allow all legal moves in bot game
             self.board_widget.update()
             logging.debug(f"Started bot game with ID: {game_id}")
+            self.solving_puzzle = False  # Ensure puzzle mode is off
         else:
             self.show_result("Failed to create bot game.")
 
@@ -242,32 +275,39 @@ class MainWindow(QMainWindow):
 
     def get_online_bots(self):
         bots = self.lichess_handler.get_online_bots()
-        self.bots_label.setText("Online Bots:\n" + "\n".join(bots[:5]))  # Show first 5 bots
-        logging.debug(f"Online bots: {bots}")
+        if bots:
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("Online Bots")
+            msg_box.setText("Available bots:\n" + "\n".join(bots[:10]))  # Show first 10 bots
+            msg_box.exec()
+        else:
+            self.show_result("Failed to fetch online bots.")
 
     def update_timer(self):
+        # Update clock widgets instead of labels
         if self.current_turn == chess.WHITE:
-            self.white_time -= 1
-            if self.white_time <= 0:
-                self.timer.stop()
-                self.white_timer_label.setText("White: 00:00")
-                self.show_result("Black wins on time!")
-                self.board_widget.setEnabled(False)
-                return
+            self.white_clock.time = self.format_time(self.white_time)
         else:
-            self.black_time -= 1
-            if self.black_time <= 0:
-                self.timer.stop()
-                self.black_timer_label.setText("Black: 00:00")
-                self.show_result("White wins on time!")
-                self.board_widget.setEnabled(False)
-                return
-
-        self.white_timer_label.setText(f"White: {self.format_time(self.white_time)}")
-        self.black_timer_label.setText(f"Black: {self.format_time(self.black_time)}")
+            self.black_clock.time = self.format_time(self.black_time)
+        self.white_clock.update()
+        self.black_clock.update()
 
     def switch_turn(self):
         self.current_turn = not self.current_turn
+        if self.manual_game and not self.solving_puzzle:
+            if self.current_turn == chess.WHITE:
+                self.white_clock.start()
+                self.black_clock.stop()
+            else:
+                self.black_clock.start()
+                self.white_clock.stop()
+
+        # Update move history
+        if self.board.move_stack:
+            last_move = self.board.move_stack[-1]
+            move_text = f"{'White' if not self.current_turn else 'Black'}: {last_move.uci()}"
+            self.move_list.append(move_text)
+            self.move_history.setText("\n".join(self.move_list))
 
     def format_time(self, seconds):
         minutes = seconds // 60
@@ -282,11 +322,18 @@ class MainWindow(QMainWindow):
     def check_game_result(self):
         if self.board.is_checkmate():
             winner = "White" if self.board.turn == chess.BLACK else "Black"
-            self.show_result(f"{winner} wins by checkmate!")
-            self.board_widget.setEnabled(False)
-        elif self.board.is_stalemate() or self.board.is_insufficient_material() or self.board.is_seventyfive_moves() or self.board.is_fivefold_repetition() or self.board.is_variant_draw():
-            self.show_result("Draw!")
-            self.board_widget.setEnabled(False)
+            self.game_over(f"{winner} wins by checkmate!")
+        elif (self.board.is_stalemate() or self.board.is_insufficient_material() or
+              self.board.is_seventyfive_moves() or self.board.is_fivefold_repetition() or
+              self.board.is_variant_draw()):
+            self.game_over("Draw!")
+
+    def game_over(self, message):
+        self.timer.stop()
+        self.white_clock.stop()
+        self.black_clock.stop()
+        self.board_widget.setEnabled(False)
+        self.move_history.setText(f"{message}\n\n" + "\n".join(self.move_list))
 
     def show_result(self, message):
         msg_box = QMessageBox()
@@ -301,9 +348,15 @@ class MainWindow(QMainWindow):
         self.board_widget.board = self.board
         self.solution_moves = [chess.Move.from_uci(move) for move in puzzle['puzzle']['solution']]
         self.current_move_index = 0
-        self.allowed_moves = [self.solution_moves[self.current_move_index]]
+        self.allowed_moves = [self.solution_moves[self.current_move_index]]  # Set initial allowed move
+        self.solving_puzzle = True  # Set puzzle mode
         self.board_widget.update()
-        self.show_result(f"Today's Puzzle:\n{puzzle['puzzle']['id']}")
+        self.move_history.setText(f"Today's Puzzle\nMake your move!")
+        # Stop and hide clocks during puzzles
+        self.white_clock.stop()
+        self.black_clock.stop()
+        self.white_clock.hide()
+        self.black_clock.hide()
 
     def prev_move(self):
         if self.current_move_index > 0:
@@ -326,8 +379,70 @@ class MainWindow(QMainWindow):
     def highlight_correct_move(self):
         pass  # No longer highlighting the correct move
 
-if __name__ == "__main__":
+    def show_settings(self):
+        if self.settings_menu.isHidden():
+            # Position the menu below the settings button
+            button = self.layout_manager.get_settings_button()
+            pos = button.mapToGlobal(button.rect().bottomLeft())
+            self.settings_menu.move(pos)
+            self.settings_menu.show()
+        else:
+            self.settings_menu.hide()
+
+    def apply_settings(self, resolution, fullscreen, clock_time):
+        # Store new clock time
+        self.clock_time = clock_time
+
+        # Handle fullscreen
+        if fullscreen != self.is_fullscreen:
+            self.is_fullscreen = fullscreen
+            if fullscreen:
+                self.showFullScreen()
+            else:
+                self.showNormal()
+
+        # Handle resolution change
+        if resolution:
+            width, height = map(int, resolution.split('x'))
+            orientation = "vertical" if height > width else "horizontal"
+            new_layout = f"layout_{width}x{height}_{orientation}"
+            self.layout_manager.apply_layout(new_layout)
+
+    def keyPressEvent(self, event):
+        # Add ESC key to exit fullscreen
+        if event.key() == Qt.Key.Key_Escape and self.is_fullscreen:
+            self.showNormal()
+            self.is_fullscreen = False
+            self.settings_menu.fullscreen_check.setChecked(False)
+        super().keyPressEvent(event)
+
+    def check_orientation(self):
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            geometry = screen.geometry()
+            new_orientation = "vertical" if geometry.height() > geometry.width() else "horizontal"
+
+            if new_orientation != self.current_orientation:
+                self.current_orientation = new_orientation
+                if geometry.width() == 1080 or geometry.width() == 2220:  # Mobile device
+                    profile = f"layout_{geometry.width()}x{geometry.height()}_{new_orientation}"
+                    self.layout_manager.apply_layout(profile)
+
+def main():
     app = QApplication(sys.argv)
+
+    # Set Ubuntu style
+    app.setStyle("Ubuntu")
+
+    # Set environment variables for Ubuntu SDK
+    os.environ["QT_QUICK_CONTROLS_STYLE"] = "Ubuntu"
+    os.environ["UBUNTU_PLATFORM_API"] = "touch"
+
+    # Initialize main window
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+
+    return app.exec()
+
+if __name__ == "__main__":
+    sys.exit(main())

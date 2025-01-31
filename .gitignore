@@ -1,3 +1,4 @@
 # Ignore configuration files
 config.*
 *.drawio
+*pycache*
