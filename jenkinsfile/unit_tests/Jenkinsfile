@@ -1,4 +1,4 @@
-node('docker-enabled') {
+node('docker') {
     docker.image('python:3.11').inside {
         pipeline {
             options {
