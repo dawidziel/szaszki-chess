@@ -1,40 +1,37 @@
-pipeline {
-    agent {
-        docker {
-            image 'python:3.11'
-            // Optionally add args like '-v /var/run/docker.sock:/var/run/docker.sock' if needed.
-        }
-    }
-
-    options {
-        skipDefaultCheckout true
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                sh 'rm -rf szaszki-chess'
-                sh 'git clone https://github.com/dawidziel/szaszki-chess.git'
-                sh 'cd szaszki-chess && git checkout main'
+node('docker-enabled') {
+    docker.image('python:3.11').inside {
+        pipeline {
+            options {
+                skipDefaultCheckout true
             }
-        }
 
-        stage('Install Dependencies') {
-            steps {
-                sh "pip install -r szaszki-chess/requirements.txt"
+            stages {
+                stage('Checkout') {
+                    steps {
+                        sh 'rm -rf szaszki-chess'
+                        sh 'git clone https://github.com/dawidziel/szaszki-chess.git'
+                        sh 'cd szaszki-chess && git checkout main'
+                    }
+                }
+
+                stage('Install Dependencies') {
+                    steps {
+                        sh "pip install -r szaszki-chess/requirements.txt"
+                    }
+                }
+
+                stage('Run Unit Tests') {
+                    steps {
+                        sh "pytest szaszki-chess"
+                    }
+                }
             }
-        }
 
-        stage('Run Unit Tests') {
-            steps {
-                sh "pytest szaszki-chess"
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/test-results.xml'
+                }
             }
-        }
-    }
-
-    post {
-        always {
-            junit allowEmptyResults: true, testResults: '**/test-results.xml'
         }
     }
 }
