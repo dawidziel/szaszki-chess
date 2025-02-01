@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        PYTHON_VERSION = '3.11.2'
+        VENV_DIR = 'venv'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -11,20 +16,21 @@ pipeline {
         stage('Set up Python') {
             steps {
                 sh 'sudo apt-get update'
-                sh 'sudo apt-get install -y python3 python3-pip'
-                sh 'python3 -m pip install --upgrade pip'
+                sh 'sudo apt-get install -y python3 python3-venv'
+                sh "python3 -m venv ${VENV_DIR}"
+                sh ". ${VENV_DIR}/bin/activate && python -m pip install --upgrade pip"
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh ". ${VENV_DIR}/bin/activate && pip install -r requirements.txt"
             }
         }
 
         stage('Run Unit Tests') {
             steps {
-                sh 'pytest'
+                sh ". ${VENV_DIR}/bin/activate && pytest"
             }
         }
     }

@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         PYTHON_VERSION = '3.11.2'
+        VENV_DIR = 'venv'
     }
 
     stages {
@@ -15,20 +16,21 @@ pipeline {
         stage('Set up Python') {
             steps {
                 sh 'sudo apt-get update'
-                sh 'sudo apt-get install -y python3 python3-pip'
-                sh 'python3 -m pip install --upgrade pip'
+                sh 'sudo apt-get install -y python3 python3-venv'
+                sh "python3 -m venv ${VENV_DIR}"
+                sh ". ${VENV_DIR}/bin/activate && python -m pip install --upgrade pip"
             }
         }
 
         stage('Install Clickable') {
             steps {
-                sh 'pip install git+https://gitlab.com/clickable/clickable.git'
+                sh ". ${VENV_DIR}/bin/activate && pip install git+https://gitlab.com/clickable/clickable.git"
             }
         }
 
         stage('Build the game') {
             steps {
-                sh 'clickable build'
+                sh ". ${VENV_DIR}/bin/activate && clickable build"
             }
         }
     }
