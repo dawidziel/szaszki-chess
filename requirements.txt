@@ -1,3 +1,6 @@
 PyQt6
 berserk
 chess
+pytest
+pytest-qt
+pytest-xvfb

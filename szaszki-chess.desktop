@@ -1,7 +1,10 @@
 [Desktop Entry]
 Name=Szaszki Chess
-Exec=python3 qt.py
+Comment=Chess game with Lichess integration
+Exec=szaszki-chess
 Icon=${SNAP}/meta/gui/icon.png
 Terminal=false
 Type=Application
+Keywords=chess;game;lichess;
 X-Ubuntu-Touch=true
+X-Ubuntu-Gettext-Domain=szaszki-chess

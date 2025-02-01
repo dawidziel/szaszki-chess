@@ -1,7 +1,6 @@
 import sys
 import pytest
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer
 from custom_widgets import ClockWidget
 
 @pytest.fixture(scope="session")
@@ -10,12 +9,11 @@ def qapp():
     if app is None:
         app = QApplication(sys.argv)
     yield app
+    app.quit()
 
 @pytest.fixture
 def clock_widget(qapp):
-    widget = ClockWidget(is_white=True)
-    yield widget
-    widget.deleteLater()
+    return ClockWidget(is_white=True)
 
 def test_clock_widget_init(clock_widget):
     assert clock_widget.seconds_remaining == 300
@@ -52,6 +50,10 @@ def test_clock_widget_time_expired_signal(clock_widget, qtbot):
         clock_widget.start()
 
     assert clock_widget.seconds_remaining == 0
+
+def test_clock_widget_zero_time(clock_widget):
+    clock_widget.reset(0)
+    assert clock_widget.time_str == "00:00"
 
 def test_clock_widget_time_format(clock_widget):
     test_times = [
