@@ -1,0 +1,30 @@
+name: Build Ubuntu Touch Game
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout repository
+            uses: actions/checkout@v2
+
+        - name: Set up Python
+            uses: actions/setup-python@v2
+            with:
+                python-version: '3.x'
+
+        - name: Install Clickable
+            run: |
+                python3 -m pip install --upgrade pip
+                pip install git+https://gitlab.com/clickable/clickable.git
+
+        - name: Build the game
+            run: clickable build
