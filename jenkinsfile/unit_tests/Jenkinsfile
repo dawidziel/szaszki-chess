@@ -9,7 +9,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 sh 'git clone https://github.com/dawidziel/szaszki-chess.git'
-                sh 'cd szaszki-chess && git checkout main'
+                sh 'mkdir -p test_szachy && cd test_szachy && git checkout main'
             }
         }
 
@@ -24,13 +24,13 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pip install -r szaszki-chess/requirements.txt"
+                sh ". ${VENV_DIR}/bin/activate && pip install -r test_szachy/requirements.txt"
             }
         }
 
         stage('Run Unit Tests') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pytest szaszki-chess"
+                sh ". ${VENV_DIR}/bin/activate && pytest test_szachy"
             }
         }
     }
