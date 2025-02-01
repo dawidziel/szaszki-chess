@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        PYTHON_VERSION = '3.x'
+        PYTHON_VERSION = '3.11.2'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://your-repo-url.git']]])
             }
         }
 
