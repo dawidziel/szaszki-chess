@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    options {
+        // Prevents the default SCM checkout so that our custom checkout stage can run without conflict.
+        skipDefaultCheckout true
+    }
+
     environment {
         VENV_DIR = 'venv'
     }
@@ -8,8 +13,9 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                sh 'rm -rf szaszki-chess'
                 sh 'git clone https://github.com/dawidziel/szaszki-chess.git'
-                sh 'mkdir -p test_szachy && cd test_szachy && git checkout main'
+                sh 'cd szaszki-chess && git checkout main'
             }
         }
 
@@ -24,20 +30,20 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pip install -r test_szachy/requirements.txt"
+                sh ". ${VENV_DIR}/bin/activate && pip install -r szaszki-chess/requirements.txt"
             }
         }
 
         stage('Run Unit Tests') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pytest test_szachy"
+                sh ". ${VENV_DIR}/bin/activate && pytest szaszki-chess"
             }
         }
     }
 
     post {
         always {
-            junit '**/test-results.xml'
+            junit allowEmptyResults: true, testResults: '**/test-results.xml'
         }
     }
 }
