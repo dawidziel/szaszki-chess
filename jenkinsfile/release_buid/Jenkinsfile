@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+
+    environment {
+        PYTHON_VERSION = '3.x'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Set up Python') {
+            steps {
+                sh 'sudo apt-get update'
+                sh 'sudo apt-get install -y python3 python3-pip'
+                sh 'python3 -m pip install --upgrade pip'
+            }
+        }
+
+        stage('Install Clickable') {
+            steps {
+                sh 'pip install git+https://gitlab.com/clickable/clickable.git'
+            }
+        }
+
+        stage('Build the game') {
+            steps {
+                sh 'clickable build'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: '**/build/**/*', allowEmptyArchive: true
+        }
+    }
+}

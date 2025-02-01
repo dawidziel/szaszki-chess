@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Set up Python') {
+            steps {
+                sh 'sudo apt-get update'
+                sh 'sudo apt-get install -y python3 python3-pip'
+                sh 'python3 -m pip install --upgrade pip'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                sh 'pytest'
+            }
+        }
+    }
+
+    post {
+        always {
+            junit '**/test-results.xml'
+        }
+    }
+}
