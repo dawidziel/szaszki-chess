@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        PYTHON_VERSION = '3.11.2'
         VENV_DIR = 'venv'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout([$class: 'GitSCM', branches: [[name: 'refs/heads/main']], userRemoteConfigs: [[url: 'https://github.com/dawidziel/szaszki-chess.git']]])
+                sh 'git clone https://github.com/dawidziel/szaszki-chess.git'
+                sh 'cd szaszki-chess && git checkout main'
             }
         }
 
@@ -24,13 +24,13 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pip install -r requirements.txt"
+                sh ". ${VENV_DIR}/bin/activate && pip install -r szaszki-chess/requirements.txt"
             }
         }
 
         stage('Run Unit Tests') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pytest"
+                sh ". ${VENV_DIR}/bin/activate && pytest szaszki-chess"
             }
         }
     }
