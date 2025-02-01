@@ -1,13 +1,13 @@
 pipeline {
-    agent any
-
-    options {
-        // Prevents the default SCM checkout so that our custom checkout stage can run without conflict.
-        skipDefaultCheckout true
+    agent {
+        docker {
+            image 'python:3.11'
+            // Optionally add args like '-v /var/run/docker.sock:/var/run/docker.sock' if needed.
+        }
     }
 
-    environment {
-        VENV_DIR = 'venv'
+    options {
+        skipDefaultCheckout true
     }
 
     stages {
@@ -19,24 +19,15 @@ pipeline {
             }
         }
 
-        stage('Set up Python') {
-            steps {
-                sh 'apt-get update'
-                sh 'apt-get install -y python3 python3-venv'
-                sh "python3 -m venv ${VENV_DIR}"
-                sh ". ${VENV_DIR}/bin/activate && python -m pip install --upgrade pip"
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pip install -r szaszki-chess/requirements.txt"
+                sh "pip install -r szaszki-chess/requirements.txt"
             }
         }
 
         stage('Run Unit Tests') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && pytest szaszki-chess"
+                sh "pytest szaszki-chess"
             }
         }
     }
