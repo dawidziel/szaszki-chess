@@ -15,8 +15,8 @@ pipeline {
 
         stage('Set up Python') {
             steps {
-                sh 'sudo apt-get update'
-                sh 'sudo apt-get install -y python3 python3-venv'
+                sh 'apt-get update'
+                sh 'apt-get install -y python3 python3-venv'
                 sh "python3 -m venv ${VENV_DIR}"
                 sh ". ${VENV_DIR}/bin/activate && python -m pip install --upgrade pip"
             }
