@@ -1,37 +1,47 @@
-node('docker') {
-    docker.image('python:3.11').inside {
-        pipeline {
-            options {
-                skipDefaultCheckout true
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout true
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                sh 'rm -rf szaszki-chess'
+                sh 'git clone https://github.com/dawidziel/szaszki-chess.git'
+                sh 'cd szaszki-chess && git checkout main'
             }
+        }
 
-            stages {
-                stage('Checkout') {
-                    steps {
-                        sh 'rm -rf szaszki-chess'
-                        sh 'git clone https://github.com/dawidziel/szaszki-chess.git'
-                        sh 'cd szaszki-chess && git checkout main'
-                    }
-                }
-
-                stage('Install Dependencies') {
-                    steps {
-                        sh "pip install -r szaszki-chess/requirements.txt"
-                    }
-                }
-
-                stage('Run Unit Tests') {
-                    steps {
-                        sh "pytest szaszki-chess"
-                    }
-                }
+        stage('Install Dependencies') {
+            steps {
+                sh """
+                   podman run --rm \\
+                     -v ${WORKSPACE}/szaszki-chess:/app \\
+                     -w /app \\
+                     python:3.11 \\
+                     pip install -r requirements.txt
+                """
             }
+        }
 
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/test-results.xml'
-                }
+        stage('Run Unit Tests') {
+            steps {
+                sh """
+                   podman run --rm \\
+                     -v ${WORKSPACE}/szaszki-chess:/app \\
+                     -w /app \\
+                     python:3.11 \\
+                     pytest --junitxml=test-results.xml
+                """
             }
+        }
+    }
+
+    post {
+        always {
+            junit allowEmptyResults: true, testResults: '**/test-results.xml'
         }
     }
 }
