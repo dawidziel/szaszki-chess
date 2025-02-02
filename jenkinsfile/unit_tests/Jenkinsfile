@@ -14,18 +14,6 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh """
-                   podman run --rm \\
-                     -v ${WORKSPACE}/szaszki-chess:/app \\
-                     -w /app \\
-                     python:3.11 \\
-                     pip install -r requirements.txt
-                """
-            }
-        }
-
         stage('Run Unit Tests') {
             steps {
                 sh """
@@ -33,7 +21,7 @@ pipeline {
                      -v ${WORKSPACE}/szaszki-chess:/app \\
                      -w /app \\
                      python:3.11 \\
-                     pytest --junitxml=test-results.xml
+                     sh -c "pip install -r requirements.txt && pytest --junitxml=test-results.xml"
                 """
             }
         }
