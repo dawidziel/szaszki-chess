@@ -151,46 +151,30 @@ class LayoutManager:
     def create_horizontal_layout(self):
         container = QWidget()
         profile = self.layouts[self.current_profile]
-        main_wrapper = QHBoxLayout()  # Changed to HBox for 1920x1080
+        main_wrapper = QHBoxLayout()
         main_wrapper.setContentsMargins(*profile['margin'])
         main_wrapper.setSpacing(20)
 
-        # Use the new top_bar_visible setting to determine if the top bar should be created
-        if profile.get("top_bar_visible", True):
-            top_wrapper = QVBoxLayout()
-            top_panel = QHBoxLayout()
-            top_panel.setSpacing(20)
-            top_panel.setContentsMargins(40, 10, 40, 10)
-            for btn in self.create_top_buttons():
-                top_panel.addWidget(btn)
-            top_panel.addStretch()
-            top_wrapper.addLayout(top_panel)
-            top_wrapper.addWidget(self.main_window.board_widget)
-            main_wrapper.addLayout(top_wrapper)
-        else:
-            main_wrapper.addWidget(self.main_window.board_widget)
+        # Left side: Board widget
+        main_wrapper.addWidget(self.main_window.board_widget, stretch=2)
 
-        # Right side panel
+        # Right panel: top menu buttons arranged horizontally at the top right,
+        # then player info, move history, navigation, and clocks.
         right_panel = QVBoxLayout()
         right_panel.setSpacing(20)
-
-        # Only add menu buttons on right for 1920x1080
-        if self.current_profile == 'layout_1920x1080_horizontal':
-            menu_panel = QVBoxLayout()
-            menu_panel.setSpacing(10)
-            for btn in self.create_top_buttons():
-                btn.setFixedSize(200, 50)  # Smaller buttons for right side
-                menu_panel.addWidget(btn)
-            right_panel.addLayout(menu_panel)
-
+        # NEW: Add horizontal top menu
+        top_menu = QHBoxLayout()
+        top_menu.addStretch()
+        for btn in self.create_top_buttons():
+            top_menu.addWidget(btn)
+        right_panel.addLayout(top_menu)
+        # Existing controls below the menu
+        right_panel.addWidget(self.main_window.player_info)
         right_panel.addWidget(self.main_window.move_history)
-
-        # Navigation and clocks
         nav_layout = QHBoxLayout()
         nav_layout.addWidget(self.main_window.prev_button)
         nav_layout.addWidget(self.main_window.next_button)
         right_panel.addLayout(nav_layout)
-
         clock_layout = QHBoxLayout()
         clock_layout.addWidget(self.main_window.white_clock)
         clock_layout.addWidget(self.main_window.black_clock)
@@ -198,7 +182,7 @@ class LayoutManager:
 
         right_widget = QWidget()
         right_widget.setLayout(right_panel)
-        main_wrapper.addWidget(right_widget)
+        main_wrapper.addWidget(right_widget, stretch=1)
 
         container.setLayout(main_wrapper)
         self.main_window.setCentralWidget(container)
@@ -206,48 +190,39 @@ class LayoutManager:
     def create_vertical_layout(self):
         container = QWidget()
         profile = self.layouts[self.current_profile]
-        main_wrapper = QVBoxLayout()
+        # NEW: Use a horizontal split: left panel for board & move history,
+        # right panel contains top menu (horizontally) and player info.
+        main_wrapper = QHBoxLayout()
         main_wrapper.setContentsMargins(*profile['margin'])
         main_wrapper.setSpacing(20)
 
-        # Top panel with single row of buttons
-        top_panel = QHBoxLayout()
-        top_panel.setSpacing(20)
-        top_panel.setContentsMargins(20, 10, 20, 10)
-
-        # Add buttons in single row
-        for btn in self.create_top_buttons():
-            btn.setFixedSize(250, 60)
-            btn.setFont(QFont("Palatino", 28))
-            top_panel.addWidget(btn)
-
-        # Main content
-        content_layout = QVBoxLayout()
-        content_layout.setSpacing(20)
-
-        # Chess board
-        content_layout.addWidget(self.main_window.board_widget)
-
-        # Move history
-        content_layout.addWidget(self.main_window.move_history)
-
-        # Navigation buttons
+        # Left vertical panel: board and move history with navigation and clocks.
+        left_panel = QVBoxLayout()
+        left_panel.setSpacing(20)
+        left_panel.addWidget(self.main_window.board_widget, stretch=2)
+        left_panel.addWidget(self.main_window.move_history, stretch=1)
         nav_layout = QHBoxLayout()
-        nav_layout.setSpacing(40)
         for btn in [self.main_window.prev_button, self.main_window.next_button]:
             btn.setFixedSize(480, 80)
             nav_layout.addWidget(btn)
-        content_layout.addLayout(nav_layout)
-
-        # Clocks
+        left_panel.addLayout(nav_layout)
         clock_layout = QHBoxLayout()
-        clock_layout.setSpacing(40)
         for clock in [self.main_window.white_clock, self.main_window.black_clock]:
             clock_layout.addWidget(clock)
-        content_layout.addLayout(clock_layout)
+        left_panel.addLayout(clock_layout)
 
-        # Assemble
-        main_wrapper.addLayout(top_panel)
-        main_wrapper.addLayout(content_layout)
+        # Right panel: top menu (horizontal) at the top-right and player info below.
+        right_panel = QVBoxLayout()
+        right_panel.setSpacing(20)
+        top_menu = QHBoxLayout()
+        top_menu.addStretch()
+        for btn in self.create_top_buttons():
+            top_menu.addWidget(btn)
+        right_panel.addLayout(top_menu)
+        right_panel.addWidget(self.main_window.player_info)
+
+        main_wrapper.addLayout(left_panel, stretch=2)
+        main_wrapper.addLayout(right_panel, stretch=1)
+
         container.setLayout(main_wrapper)
         self.main_window.setCentralWidget(container)

@@ -206,10 +206,16 @@ class MainWindow(QMainWindow):
             btn.setSizePolicy(btn.sizePolicy().horizontalPolicy(), btn.sizePolicy().verticalPolicy())
             btn.setStyleSheet("border: 2px dashed black; background-color: white;")
 
-        # Create move history panel
-        self.move_history = QLabel("Move History")
-        self.move_history.setFont(QFont("Palatino", 32))
-        self.move_history.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # NEW: Use QPlainTextEdit for move history with small font and scrollable area
+        from PyQt6.QtWidgets import QPlainTextEdit
+        self.move_history = QPlainTextEdit()
+        self.move_history.setReadOnly(True)
+        self.move_history.setFont(QFont("Palatino", 10))
+
+        # NEW: Widget for player names and rankings
+        self.player_info = QLabel("White: PlayerA (1500)   Black: PlayerB (1480)")
+        self.player_info.setFont(QFont("Palatino", 10))
+        self.player_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Set window background to white
         self.setStyleSheet("QMainWindow { background-color: white; }")
@@ -252,7 +258,7 @@ class MainWindow(QMainWindow):
 
         self.board_widget.setEnabled(True)
         self.board_widget.update()
-        self.move_history.setText("New game started\nWhite to move")
+        self.move_history.setPlainText("New game started\nWhite to move")
         self.solving_puzzle = False  # Reset puzzle mode
         self.allowed_moves = None  # Reset allowed moves for new game
 
@@ -327,7 +333,7 @@ class MainWindow(QMainWindow):
             last_move = self.board.move_stack[-1]
             move_text = f"{'White' if not self.current_turn else 'Black'}: {last_move.uci()}"
             self.move_list.append(move_text)
-            self.move_history.setText("\n".join(self.move_list))
+            self.update_move_history()
 
     def format_time(self, seconds):
         minutes = seconds // 60
@@ -353,7 +359,7 @@ class MainWindow(QMainWindow):
         self.white_clock.stop()
         self.black_clock.stop()
         self.board_widget.setEnabled(False)
-        self.move_history.setText(f"{message}\n\n" + "\n".join(self.move_list))
+        self.move_history.setPlainText(f"{message}\n\n" + "\n".join(self.move_list))
 
     def show_result(self, message):
         msg_box = QMessageBox()
@@ -371,7 +377,7 @@ class MainWindow(QMainWindow):
         self.allowed_moves = [self.solution_moves[self.current_move_index]]  # Set initial allowed move
         self.solving_puzzle = True  # Set puzzle mode
         self.board_widget.update()
-        self.move_history.setText(f"Today's Puzzle\nMake your move!")
+        self.move_history.setPlainText(f"Today's Puzzle\nMake your move!")
         # Stop and hide clocks during puzzles
         self.white_clock.stop()
         self.black_clock.stop()
@@ -466,9 +472,21 @@ class MainWindow(QMainWindow):
             profile = f"layout_{geometry.width()}x{geometry.height()}_{orientation}"
             self.layout_manager.apply_layout(profile)
 
+    def format_move_history(self):
+        pgn = ""
+        for i in range(0, len(self.move_list), 2):
+            move_num = i // 2 + 1
+            white_move = self.move_list[i].split(":")[-1].strip()
+            if i + 1 < len(self.move_list):
+                black_move = self.move_list[i+1].split(":")[-1].strip()
+                pgn += f"{move_num}. {white_move} {black_move} "
+            else:
+                pgn += f"{move_num}. {white_move} "
+        return pgn.strip()
+
     def update_move_history(self):
-        # NEW: Update the move history label based on the move_list
-        self.move_history.setText("\n".join(self.move_list))
+        # NEW: Update the move history display in PGN format
+        self.move_history.setPlainText(self.format_move_history())
 
 def main():
     import os
