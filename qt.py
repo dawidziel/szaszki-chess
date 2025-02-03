@@ -123,9 +123,9 @@ class MainWindow(QMainWindow):
         self.init_ui_elements()
         self.init_game_state()
 
-        # Apply selected layout
         self.layout_manager = LayoutManager(self)
-        self.layout_manager.apply_layout(self.selected_layout)
+        # Auto-detect screen resolution and apply scalable layout
+        self.auto_apply_layout()
 
         # Setup orientation monitoring
         self.orientation_timer = QTimer()
@@ -136,6 +136,15 @@ class MainWindow(QMainWindow):
         self.settings_menu = SettingsMenu(self)
         self.settings_menu.settingsChanged.connect(self.apply_settings)
         self.is_fullscreen = False
+
+    def auto_apply_layout(self):
+        from PyQt6.QtGui import QGuiApplication
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            geometry = screen.geometry()
+            orientation = "vertical" if geometry.height() > geometry.width() else "horizontal"
+            profile = f"layout_{geometry.width()}x{geometry.height()}_{orientation}"
+            self.layout_manager.apply_layout(profile)
 
     def init_game_state(self):
         self.playing_vs_bot = False
@@ -178,12 +187,13 @@ class MainWindow(QMainWindow):
         self.white_clock = ClockWidget(is_white=True)
         self.black_clock = ClockWidget(is_white=False)
 
-        # Create navigation buttons with Palatino font
+        # Create navigation buttons with size policy for responsiveness.
         self.prev_button = QPushButton("Previous")
         self.next_button = QPushButton("Next")
         for btn in [self.prev_button, self.next_button]:
             btn.setFont(QFont("Palatino", 32))
-            btn.setFixedHeight(80)
+            btn.setFixedHeight(80)  # Keep height fixed if necessary
+            btn.setSizePolicy(btn.sizePolicy().horizontalPolicy(), btn.sizePolicy().verticalPolicy())
             btn.setStyleSheet("border: 2px dashed black; background-color: white;")
 
         # Create move history panel
@@ -359,6 +369,12 @@ class MainWindow(QMainWindow):
         self.black_clock.hide()
 
     def prev_move(self):
+        # Added error handling to prevent crashes when puzzle is not active
+        if not (self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves):
+            import logging
+            logging.debug("prev_move called but no puzzle solution is active.")
+            return
+        # ...existing code...
         if self.current_move_index > 0:
             self.current_move_index -= 1
             self.board.pop()
@@ -366,6 +382,12 @@ class MainWindow(QMainWindow):
             self.board_widget.update()
 
     def next_move(self):
+        # Added error handling to prevent crashes when puzzle is not active
+        if not (self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves):
+            import logging
+            logging.debug("next_move called but no puzzle solution is active.")
+            return
+        # ...existing code...
         if self.current_move_index < len(self.solution_moves):
             move = self.solution_moves[self.current_move_index]
             self.board.push(move)
@@ -417,16 +439,14 @@ class MainWindow(QMainWindow):
         super().keyPressEvent(event)
 
     def check_orientation(self):
+        from PyQt6.QtGui import QGuiApplication
         screen = QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.geometry()
-            new_orientation = "vertical" if geometry.height() > geometry.width() else "horizontal"
-
-            if new_orientation != self.current_orientation:
-                self.current_orientation = new_orientation
-                if geometry.width() == 1080 or geometry.width() == 2220:  # Mobile device
-                    profile = f"layout_{geometry.width()}x{geometry.height()}_{new_orientation}"
-                    self.layout_manager.apply_layout(profile)
+            orientation = "vertical" if geometry.height() > geometry.width() else "horizontal"
+            # Always generate a profile from current geometry.
+            profile = f"layout_{geometry.width()}x{geometry.height()}_{orientation}"
+            self.layout_manager.apply_layout(profile)
 
 def main():
     import os

@@ -15,6 +15,7 @@ class LayoutManager:
                 'button_size': (250, 80),
                 'clock_size': (250, 120),
                 'margin': (20, 80, 20, 20),
+                'top_bar_visible': True,        # <-- new key
                 'create_layout': self.create_horizontal_layout
             },
             'layout_1920x1080_horizontal': {
@@ -24,6 +25,7 @@ class LayoutManager:
                 'button_size': (400, 80),
                 'clock_size': (400, 120),
                 'margin': (20, 40, 20, 20),
+                'top_bar_visible': False,       # <-- new key (no top bar)
                 'create_layout': self.create_horizontal_layout
             },
             'layout_1440x1920_vertical': {
@@ -33,6 +35,7 @@ class LayoutManager:
                 'button_size': (310, 80),
                 'clock_size': (600, 220),
                 'margin': (20, 80, 20, 20),
+                'top_bar_visible': True,        # <-- new key
                 'create_layout': self.create_vertical_layout
             },
             'layout_2220x1080_horizontal': {
@@ -42,6 +45,7 @@ class LayoutManager:
                 'button_size': (250, 60),
                 'clock_size': (560, 200),
                 'margin': (20, 10, 20, 20),
+                'top_bar_visible': True,        # <-- adjust as needed
                 'create_layout': self.create_horizontal_layout
             },
             'layout_1080x2220_vertical': {
@@ -51,33 +55,55 @@ class LayoutManager:
                 'button_size': (250, 45),
                 'clock_size': (480, 180),
                 'margin': (20, 10, 20, 20),
+                'top_bar_visible': True,        # <-- new key
                 'create_layout': self.create_vertical_layout
             }
         }
 
     def apply_layout(self, profile_name):
+        # Use default layout if detected profile is not defined.
         if profile_name not in self.layouts:
-            profile_name = 'layout_1920x1440_horizontal'
+            profile = self.layouts["layout_1920x1440_horizontal"]
+            self.current_profile = "layout_1920x1440_horizontal"
+        else:
+            profile = self.layouts[profile_name]
+            self.current_profile = profile_name
 
-        profile = self.layouts[profile_name]
-        self.current_profile = profile_name
+        # Compute relative scale factor
+        from PyQt6.QtGui import QGuiApplication
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            geometry = screen.geometry()
+            # Compute scale factor based on window baseline
+            scale_factor = min(
+                geometry.width() / profile['window_size'][0],
+                geometry.height() / profile['window_size'][1]
+            )
+        else:
+            scale_factor = 1.0
 
-        # Apply window size
-        self.main_window.resize(*profile['window_size'])
-        self.main_window.setFixedSize(*profile['window_size'])
+        # Apply scaled sizes
+        ws = tuple(int(dim * scale_factor) for dim in profile['window_size'])
+        bs = tuple(int(dim * scale_factor) for dim in profile['board_size'])
+        hs = tuple(int(dim * scale_factor) for dim in profile['history_size'])
+        btn = tuple(int(dim * scale_factor) for dim in profile['button_size'])
+        clk = tuple(int(dim * scale_factor) for dim in profile['clock_size'])
+        margin = tuple(int(m * scale_factor) for m in profile['margin'])
 
-        # Apply widget sizes
-        self.main_window.board_widget.setFixedSize(*profile['board_size'])
-        self.main_window.move_history.setFixedSize(*profile['history_size'])
+        self.main_window.resize(*ws)
+        self.main_window.setFixedSize(*ws)
 
-        for btn in [self.main_window.prev_button, self.main_window.next_button]:
-            btn.setFixedSize(*profile['button_size'])
+        self.main_window.board_widget.setFixedSize(*bs)
+        self.main_window.move_history.setFixedSize(*hs)
 
-        self.main_window.white_clock.setFixedSize(*profile['clock_size'])
-        self.main_window.black_clock.setFixedSize(*profile['clock_size'])
+        for btn_widget in [self.main_window.prev_button, self.main_window.next_button]:
+            btn_widget.setFixedSize(*btn)
 
-        # Create the layout using the profile
-        if profile_name.endswith('vertical'):
+        self.main_window.white_clock.setFixedSize(*clk)
+        self.main_window.black_clock.setFixedSize(*clk)
+
+        # Update margins in layout creation methods if needed
+        if self.current_profile.endswith('vertical'):
             self.create_vertical_layout()
         else:
             self.create_horizontal_layout()
@@ -129,8 +155,8 @@ class LayoutManager:
         main_wrapper.setContentsMargins(*profile['margin'])
         main_wrapper.setSpacing(20)
 
-        # Only show top panel for non-1920x1080 layouts
-        if self.current_profile != 'layout_1920x1080_horizontal':
+        # Use the new top_bar_visible setting to determine if the top bar should be created
+        if profile.get("top_bar_visible", True):
             top_wrapper = QVBoxLayout()
             top_panel = QHBoxLayout()
             top_panel.setSpacing(20)
@@ -142,7 +168,6 @@ class LayoutManager:
             top_wrapper.addWidget(self.main_window.board_widget)
             main_wrapper.addLayout(top_wrapper)
         else:
-            # For 1920x1080, add board directly to main wrapper
             main_wrapper.addWidget(self.main_window.board_widget)
 
         # Right side panel
