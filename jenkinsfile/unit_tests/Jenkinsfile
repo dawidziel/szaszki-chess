@@ -4,6 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                sh 'rm -rf szaszki-chess'
                 git url: 'https://github.com/dawidziel/szaszki-chess.git', branch: 'main'
             }
         }
@@ -16,12 +17,21 @@ pipeline {
                       -w /app \\
                       python:3.10-slim \\
                       sh -c "
-                        apt-get update && apt-get install -y git &&
+                        apt-get update && apt-get install -y git tree &&
                         pip install --upgrade pip &&
                         cd /app &&
+                        pip freeze > requirements.txt &&
                         pip install -r requirements.txt &&
                         pip install pytest pytest-cov &&
-                        pip freeze > requirements.txt &&
+                        echo '--- Project Structure ---';
+                        tree;
+                        echo '--- Python Path ---';
+                        python -c 'import sys; print(sys.path)';
+                        echo '--- Looking for test files ---';
+                        find . -name 'test_*.py';
+                        echo '--- Attempting to discover tests ---';
+                        python -m pytest --collect-only -v || true;
+                        echo '--- Running tests with full verbosity ---';
                         python -m pytest -v \\
                         --junitxml=test-results.xml \\
                         --cov=. \\
@@ -35,9 +45,6 @@ pipeline {
     post {
         always {
             junit allowEmptyResults: true, testResults: '**/test-results.xml'
-
-            // Archive the updated requirements.txt
-            archiveArtifacts artifacts: '**/requirements.txt', allowEmptyArchive: true
         }
 
         failure {
