@@ -21,7 +21,7 @@ class LayoutManager:
             'layout_1920x1080_horizontal': {
                 'window_size': (1920, 1080),
                 'board_size': (1000, 1000),
-                'history_size': (860, 700),
+                'history_size': (800, 600),
                 'button_size': (400, 80),
                 'clock_size': (400, 120),
                 'margin': (20, 40, 20, 20),
@@ -113,10 +113,10 @@ class LayoutManager:
         # Create buttons in a single row
         buttons = []
         button_configs = [
-            ("New Game", 250, 60),
-            ("Play vs Bot", 250, 60),
-            ("Puzzles", 250, 60),
-            ("Settings", 250, 60)
+            ("New Game", 200, 60),
+            ("Play vs Bot", 200, 60),
+            ("Puzzles", 200, 60),
+            ("Settings", 200, 60)
         ]
 
         for text, width, height in button_configs:
