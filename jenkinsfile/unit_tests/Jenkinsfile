@@ -13,7 +13,7 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 sh """
-                   podman run --rm \\
+                   podman run --rm --memory=2g \\
                      -v ${WORKSPACE}/szaszki-chess:/app \\
                      -w /app \\
                      python:3.11 \\
