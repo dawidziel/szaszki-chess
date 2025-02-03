@@ -99,6 +99,12 @@ class ChessBoardWidget(QWidget):
             if move in self.board.legal_moves and (not self.main_window.allowed_moves or move in self.main_window.allowed_moves):
                 self.board.push(move)
                 logging.debug(f"Player move: {move.uci()}")
+                # NEW: Track moves for navigation if not in puzzle mode
+                if not self.main_window.solving_puzzle:
+                    self.main_window.game_moves.append(move)
+                    self.main_window.current_move_pointer = len(self.main_window.game_moves)
+                    # NEW: Save board state
+                    self.main_window.game_states.append(self.board.fen())
                 self.main_window.current_move_index += 1
                 self.main_window.switch_turn()
                 self.main_window.check_game_result()
@@ -159,6 +165,10 @@ class MainWindow(QMainWindow):
         self.allowed_moves = None  # Initialize allowed_moves
         self.current_move_index = 0  # Add this for puzzle moves tracking
         self.clock_time = 300  # Default 5 minutes
+        # NEW: Initialize game move tracking for full game navigation
+        self.game_moves = []          # List of all moves in the game
+        self.current_move_pointer = 0 # Pointer for current move position
+        self.game_states = [self.board.fen()]  # NEW: Track board states
 
     def update_clock(self):
         if self.manual_game:
@@ -369,34 +379,42 @@ class MainWindow(QMainWindow):
         self.black_clock.hide()
 
     def prev_move(self):
-        # Added error handling to prevent crashes when puzzle is not active
-        if not (self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves):
-            import logging
-            logging.debug("prev_move called but no puzzle solution is active.")
-            return
-        # ...existing code...
-        if self.current_move_index > 0:
-            self.current_move_index -= 1
-            self.board.pop()
-            self.allowed_moves = [self.solution_moves[self.current_move_index]]
-            self.board_widget.update()
+        if self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves:
+            if self.current_move_index > 0:
+                self.current_move_index -= 1
+                self.board.pop()
+                self.allowed_moves = [self.solution_moves[self.current_move_index]]
+        else:
+            if self.current_move_pointer > 0:
+                self.current_move_pointer -= 1
+                # NEW: Revert to previous board state using saved FEN
+                fen = self.game_states[self.current_move_pointer]
+                self.board = chess.Board(fen)
+                self.board_widget.board = self.board
+                if self.move_list:
+                    self.move_list.pop()
+                self.update_move_history()
+        self.board_widget.update()
 
     def next_move(self):
-        # Added error handling to prevent crashes when puzzle is not active
-        if not (self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves):
-            import logging
-            logging.debug("next_move called but no puzzle solution is active.")
-            return
-        # ...existing code...
-        if self.current_move_index < len(self.solution_moves):
-            move = self.solution_moves[self.current_move_index]
-            self.board.push(move)
-            self.current_move_index += 1
+        if self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves:
             if self.current_move_index < len(self.solution_moves):
-                self.allowed_moves = [self.solution_moves[self.current_move_index]]
-            else:
-                self.allowed_moves = None
-            self.board_widget.update()
+                move = self.solution_moves[self.current_move_index]
+                self.board.push(move)
+                self.current_move_index += 1
+                if self.current_move_index < len(self.solution_moves):
+                    self.allowed_moves = [self.solution_moves[self.current_move_index]]
+                else:
+                    self.allowed_moves = None
+        else:
+            if self.current_move_pointer < len(self.game_states) - 1:
+                self.current_move_pointer += 1
+                fen = self.game_states[self.current_move_pointer]
+                self.board = chess.Board(fen)
+                self.board_widget.board = self.board
+                # Optionally update move_list here if desired.
+                self.update_move_history()
+        self.board_widget.update()
 
     def highlight_correct_move(self):
         pass  # No longer highlighting the correct move
@@ -447,6 +465,10 @@ class MainWindow(QMainWindow):
             # Always generate a profile from current geometry.
             profile = f"layout_{geometry.width()}x{geometry.height()}_{orientation}"
             self.layout_manager.apply_layout(profile)
+
+    def update_move_history(self):
+        # NEW: Update the move history label based on the move_list
+        self.move_history.setText("\n".join(self.move_list))
 
 def main():
     import os

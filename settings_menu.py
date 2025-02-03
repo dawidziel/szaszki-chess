@@ -3,26 +3,26 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import pyqtSignal
 
 class SettingsMenu(QWidget):
-    settingsChanged = pyqtSignal(str, bool, int)  # (resolution, fullscreen, clock_time)
+    settingsChanged = pyqtSignal(str, bool, int)  # (layout, fullscreen, clock_time)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout()
         self.setFixedWidth(300)
 
-        # Resolution selector
-        self.resolution_label = QLabel("Select Resolution:")
+        # Layout selector
+        self.resolution_label = QLabel("Select Layout:")
         self.resolution_label.setFont(QFont("Palatino", 14))
         self.layout.addWidget(self.resolution_label)
 
         self.resolution_combo = QComboBox()
         self.resolution_combo.setFont(QFont("Palatino", 12))
         self.resolutions = [
-            "1920x1440",
-            "1920x1080",
-            "1440x1920",
-            "2220x1080",
-            "1080x2220"
+            "layout_1920x1440_horizontal",
+            "layout_1920x1080_horizontal",
+            "layout_1440x1920_vertical",
+            "layout_2220x1080_horizontal",
+            "layout_1080x2220_vertical"
         ]
         self.resolution_combo.addItems(self.resolutions)
         self.layout.addWidget(self.resolution_combo)
@@ -53,8 +53,8 @@ class SettingsMenu(QWidget):
         self.hide()
 
     def apply_settings(self):
-        resolution = self.resolution_combo.currentText()
+        layout_choice = self.resolution_combo.currentText()
         fullscreen = self.fullscreen_check.isChecked()
         clock_time = self.time_spinner.value() * 60  # Convert minutes to seconds
-        self.settingsChanged.emit(resolution, fullscreen, clock_time)
+        self.settingsChanged.emit(layout_choice, fullscreen, clock_time)
         self.hide()
