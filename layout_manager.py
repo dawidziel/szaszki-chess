@@ -88,7 +88,8 @@ class LayoutManager:
         hs = tuple(int(dim * scale_factor) for dim in profile['history_size'])
         btn = tuple(int(dim * scale_factor) for dim in profile['button_size'])
         clk = tuple(int(dim * scale_factor) for dim in profile['clock_size'])
-        margin = tuple(int(m * scale_factor) for m in profile['margin'])
+        # Enforce minimum margin of 20px on each side
+        margin = tuple(max(20, int(m * scale_factor)) for m in profile['margin'])
 
         self.main_window.resize(*ws)
         self.main_window.setFixedSize(*ws)
@@ -164,6 +165,7 @@ class LayoutManager:
         right_panel.setSpacing(20)
         # NEW: Add horizontal top menu
         top_menu = QHBoxLayout()
+        top_menu.setSpacing(20)
         top_menu.addStretch()
         for btn in self.create_top_buttons():
             top_menu.addWidget(btn)
@@ -172,10 +174,12 @@ class LayoutManager:
         right_panel.addWidget(self.main_window.player_info)
         right_panel.addWidget(self.main_window.move_history)
         nav_layout = QHBoxLayout()
+        nav_layout.setSpacing(20)
         nav_layout.addWidget(self.main_window.prev_button)
         nav_layout.addWidget(self.main_window.next_button)
         right_panel.addLayout(nav_layout)
         clock_layout = QHBoxLayout()
+        clock_layout.setSpacing(20)
         clock_layout.addWidget(self.main_window.white_clock)
         clock_layout.addWidget(self.main_window.black_clock)
         right_panel.addLayout(clock_layout)
@@ -202,11 +206,13 @@ class LayoutManager:
         left_panel.addWidget(self.main_window.board_widget, stretch=2)
         left_panel.addWidget(self.main_window.move_history, stretch=1)
         nav_layout = QHBoxLayout()
+        nav_layout.setSpacing(20)
         for btn in [self.main_window.prev_button, self.main_window.next_button]:
             btn.setFixedSize(480, 80)
             nav_layout.addWidget(btn)
         left_panel.addLayout(nav_layout)
         clock_layout = QHBoxLayout()
+        clock_layout.setSpacing(20)
         for clock in [self.main_window.white_clock, self.main_window.black_clock]:
             clock_layout.addWidget(clock)
         left_panel.addLayout(clock_layout)
@@ -215,6 +221,7 @@ class LayoutManager:
         right_panel = QVBoxLayout()
         right_panel.setSpacing(20)
         top_menu = QHBoxLayout()
+        top_menu.setSpacing(20)
         top_menu.addStretch()
         for btn in self.create_top_buttons():
             top_menu.addWidget(btn)
