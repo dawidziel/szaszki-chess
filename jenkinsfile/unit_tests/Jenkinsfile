@@ -15,9 +15,19 @@ pipeline {
                     docker run --rm --memory=2g \\
                       -v \${WORKSPACE}/szaszki-chess:/app \\
                       -w /app \\
-                      safesecurity/pytest \\
-                      sh -c "pip freeze > requirements.txt && pip install -r requirements.txt &&
-                             python -m pytest -v --junitxml=test-results.xml"
+                      python:3.10-slim \\
+                      sh -c "
+                        apt-get update && apt-get install -y git &&
+                        pip install --upgrade pip &&
+                        cd /app &&
+                        pip install -r requirements.txt &&
+                        pip install pytest pytest-cov &&
+                        pip freeze > requirements.txt &&
+                        python -m pytest -v \\
+                        --junitxml=test-results.xml \\
+                        --cov=. \\
+                        || (echo 'Tests failed' && exit 1)
+                      "
                 """
             }
         }
@@ -26,6 +36,13 @@ pipeline {
     post {
         always {
             junit allowEmptyResults: true, testResults: '**/test-results.xml'
+
+            // Archive the updated requirements.txt
+            archiveArtifacts artifacts: '**/requirements.txt', allowEmptyArchive: true
+        }
+
+        failure {
+            echo 'Unit tests failed. Please check the test results.'
         }
     }
 }
