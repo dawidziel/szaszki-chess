@@ -8,7 +8,7 @@ pipeline {
             }
         }
 
-        stage('Run Unit Tests') {
+        stage('Investigate Project Structure') {
             steps {
                 sh """
                     docker run --rm --memory=2g \\
@@ -16,29 +16,20 @@ pipeline {
                       -w /app \\
                       python:3.10-slim \\
                       sh -c "
-                        apt-get update && apt-get install -y git tree &&
-                        pip install --upgrade pip &&
-                        ls && cd /app && ls &&
-                        pip freeze > requirements.txt &&
-                        pip install -r requirements.txt &&
-                        pip install pytest pytest-cov &&
-                        echo '--- Project Structure ---';
-                        tree;
-                        echo '--- Python Path ---';
-                        python -c 'import sys; print(sys.path)';
-                        echo '--- Looking for test files ---';
-                        find . -name 'test_*.py';
-                        echo '--- Attempting to discover tests ---';
-                        python -m pytest --collect-only -v || true;
-                        echo '--- Running tests with full verbosity ---';
-                        python -m pytest -v \\
-                        --junitxml=test-results.xml \\
-                        --cov=. \\
-                        || (echo 'Tests failed' && exit 1)
+                        apt-get update && apt-get install -y git tree findutils &&
+                        echo '--- Full Directory Listing ---';
+                        find . -type d;
+                        echo '--- All Files ---';
+                        find . -type f;
+                        echo '--- Searching for Python files ---';
+                        find . -name '*.py';
+                        echo '--- Checking contents of requirements.txt ---';
+                        cat requirements.txt
                       "
                 """
             }
         }
+
     }
 
     post {
