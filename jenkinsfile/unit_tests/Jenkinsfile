@@ -27,7 +27,6 @@ pipeline {
                              python -m venv venv && \\
                              . venv/bin/activate && \\
                              python -m pip install --upgrade pip && \\
-                             python -m pip install --no-cache-dir pytest-docker pytest pytest-qt && \\
                              python -m pip install -r requirements.txt && \\
                              export PYTHONPATH=/app/szaszki-chess && \\
                              export QT_QPA_PLATFORM=offscreen && \\
