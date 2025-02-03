@@ -8,7 +8,7 @@ pipeline {
             }
         }
 
-        stage('Investigate Project Structure') {
+        stage('Run Unit Tests') {
             steps {
                 sh """
                     docker run --rm --memory=2g \\
@@ -16,26 +16,32 @@ pipeline {
                       -w /app \\
                       python:3.12 \\
                       sh -c "
-                        apt-get update && apt-get install -y git tree findutils &&
-                        pip freeze > requirements.txt ;
-                        echo '--- Full Directory Listing ---';
-                        find . -type d;
-                        echo '--- All Files ---';
-                        find . -type f;
-                        echo '--- Searching for Python files ---';
-                        find . -name '*.py';
-                        echo '--- Checking contents of requirements.txt ---';
-                        cat requirements.txt
+                        apt-get update && apt-get install -y git &&
+                        pip install --upgrade pip &&
+                        cd /app &&
+                        ls -la &&
+                        cp -r /app/* /tmp/ &&
+                        cd /tmp &&
+                        pwd &&
+                        ls -la &&
+                        pip freeze > requirements.txt &&
+                        pip install -r requirements.txt &&
+                        pip install pytest pytest-cov &&
+                        python -m pytest -v \\
+                        --junitxml=/tmp/test-results.xml \\
+                        --cov=. \\
+                        || (echo 'Tests failed' && exit 1)
                       "
                 """
             }
         }
-
     }
 
     post {
         always {
             junit allowEmptyResults: true, testResults: '**/test-results.xml'
+
+            archiveArtifacts artifacts: '**/requirements.txt,**/test-results.xml', allowEmptyArchive: true
         }
 
         failure {
