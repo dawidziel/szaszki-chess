@@ -16,7 +16,7 @@ pipeline {
                       -v \${WORKSPACE}/szaszki-chess:/app \\
                       -w /app \\
                       safesecurity/pytest \\
-                      sh -c "dir && dir app && pip install -r requirements.txt &&
+                      sh -c "pip install -r requirements.txt &&
                              python -m pytest -v --junitxml=test-results.xml"
                 """
             }
