@@ -430,6 +430,11 @@ class MainWindow(QMainWindow):
 
 def main():
     import os
+    # If running unit tests, set headless environment variables.
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
+        if "XDG_RUNTIME_DIR" not in os.environ:
+            os.environ["XDG_RUNTIME_DIR"] = "/tmp"
     # Only set the offscreen platform if running under pytest
     if "PYTEST_CURRENT_TEST" in os.environ:
         os.environ["QT_QPA_PLATFORM"] = "offscreen"
