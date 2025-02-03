@@ -1,50 +1,23 @@
 pipeline {
     agent any
 
-    environment {
-        // Set the project directory name
-        PROJECT_DIR = 'szaszki-chess'
-    }
-
     stages {
         stage('Checkout') {
             steps {
-                // Clean workspace and clone the repository
-                sh 'rm -rf ${PROJECT_DIR}'
+                sh 'rm -rf szaszki-chess'
                 git url: 'https://github.com/dawidziel/szaszki-chess.git', branch: 'main'
-            }
-        }
-
-        stage('Prepare Environment') {
-            steps {
-                // Use podman to set up the testing environment
-                sh """
-                    podman run --rm --memory=2g \\
-                      -v \${WORKSPACE}/${PROJECT_DIR}:/app \\
-                      -w /app \\
-                      safesecurity/pytest \\
-                      sh -c "python3 -m venv venv &&
-                             . venv/bin/activate &&
-                             pip install --upgrade pip &&
-                             pip install -r requirements.txt"
-                """
             }
         }
 
         stage('Run Unit Tests') {
             steps {
-                // Run tests with more detailed output and error handling
                 sh """
-                    podman run --rm --memory=2g \\
-                      -v \${WORKSPACE}/${PROJECT_DIR}:/app \\
+                    docker run --rm --memory=2g \\
+                      -v \${WORKSPACE}/szaszki-chess:/app \\
                       -w /app \\
                       safesecurity/pytest \\
-                      sh -c ". venv/bin/activate &&
-                             python -m pytest -v \\
-                             --junitxml=test-results.xml \\
-                             --cov=. \\
-                             --cov-report=xml \\
-                             || exit 1"
+                      sh -c "pip install -r requirements.txt &&
+                             python -m pytest -v --junitxml=test-results.xml"
                 """
             }
         }
@@ -52,19 +25,7 @@ pipeline {
 
     post {
         always {
-            // Publish test results
             junit allowEmptyResults: true, testResults: '**/test-results.xml'
-
-            // Optional: Publish coverage reports
-            cobertura coberturaReportFile: '**/coverage.xml'
-        }
-
-        success {
-            echo 'All tests passed successfully!'
-        }
-
-        failure {
-            echo 'Tests failed. Please check the test results.'
         }
     }
 }
