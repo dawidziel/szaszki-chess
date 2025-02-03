@@ -19,6 +19,8 @@ pipeline {
                           libdbus-1-3 \\
                           xvfb && \\
                         pip install --upgrade pip && \\
+                        git clone https://github.com/dawidziel/szaszki-chess.git && \\
+                        cd szaszki-chess && \\
                         pip install pytest pytest-cov pytest-qt && \\
                         pip install -r requirements.txt && \\
                         export DISPLAY=:99 && \\
