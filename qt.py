@@ -5,9 +5,9 @@ import time
 import os
 import io
 import logging
-from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QMessageBox
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QScreen, QGuiApplication
-from PyQt6.QtCore import QUrl
+from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QMessageBox, QLabel  # Added QLabel
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QScreen, QGuiApplication, QFont
+from PyQt6.QtCore import QUrl, QTimer, Qt  # Added QTimer and Qt
 from PyQt6.QtQml import QQmlApplicationEngine
 from lichess_handler import LichessHandler
 from config import lichess_token
@@ -429,6 +429,11 @@ class MainWindow(QMainWindow):
                     self.layout_manager.apply_layout(profile)
 
 def main():
+    import os
+    # Only set the offscreen platform if running under pytest
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
     app = QApplication(sys.argv)
 
     # Set Ubuntu style
