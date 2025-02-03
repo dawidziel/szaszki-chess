@@ -16,8 +16,24 @@ pipeline {
                     podman run --rm --memory=2g \\
                       -v \${WORKSPACE}/szaszki-chess:/app \\
                       -w /app \\
-                      pytest-docker \\
-                      sh -c "pip install -r requirements.txt &&
+                      python:3.11 \\
+                      sh -c "apt-get update && \\
+                             apt-get install -y \\
+                               libgl1-mesa-glx \\
+                               libxkbcommon0 \\
+                               libegl1-mesa \\
+                               libdbus-1-3 \\
+                               xvfb && \\
+                             python -m venv venv && \\
+                             . venv/bin/activate && \\
+                             python -m pip install --upgrade pip && \\
+                             python -m pip install --no-cache-dir pytest-docker pytest pytest-qt && \\
+                             python -m pip install -r requirements.txt && \\
+                             export PYTHONPATH=/app/szaszki-chess && \\
+                             export QT_QPA_PLATFORM=offscreen && \\
+                             export DISPLAY=:99 && \\
+                             Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset & \\
+                             sleep 3 && \\
                              python -m pytest -v --junitxml=test-results.xml"
                 """
             }
