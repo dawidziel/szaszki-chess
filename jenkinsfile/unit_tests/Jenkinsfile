@@ -2,35 +2,30 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/dawidziel/szaszki-chess.git', branch: 'main'
-            }
-        }
-
         stage('Run Unit Tests') {
             steps {
                 sh """
                     docker run --rm --memory=2g \\
-                      -v \${WORKSPACE}/szaszki-chess:/app \\
+                      -v \${WORKSPACE}:/app \\
                       -w /app \\
                       python:3.12 \\
                       sh -c "
-                        apt-get update && apt-get install -y git &&
-                        pip install --upgrade pip &&
-                        cd /app &&
-                        ls -la &&
-                        cp -r /app/* /tmp/ &&
-                        cd /tmp &&
-                        pwd &&
-                        ls -la &&
-                        pip freeze > requirements.txt &&
-                        pip install -r requirements.txt &&
-                        pip install pytest pytest-cov &&
-                        python -m pytest -v \\
-                        --junitxml=/tmp/test-results.xml \\
-                        --cov=. \\
-                        || (echo 'Tests failed' && exit 1)
+                        apt-get update && \\
+                        apt-get install -y \\
+                          git \\
+                          libgl1-mesa-glx \\
+                          libxkbcommon0 \\
+                          libegl1-mesa \\
+                          libdbus-1-3 \\
+                          xvfb && \\
+                        pip install --upgrade pip && \\
+                        pip install pytest pytest-cov pytest-qt && \\
+                        pip install -r requirements.txt && \\
+                        export DISPLAY=:99 && \\
+                        export QT_QPA_PLATFORM=offscreen && \\
+                        Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset & \\
+                        sleep 3 && \\
+                        python -m pytest -v --junitxml=test-results.xml --cov=.
                       "
                 """
             }
@@ -40,12 +35,7 @@ pipeline {
     post {
         always {
             junit allowEmptyResults: true, testResults: '**/test-results.xml'
-
-            archiveArtifacts artifacts: '**/requirements.txt,**/test-results.xml', allowEmptyArchive: true
-        }
-
-        failure {
-            echo 'Unit tests failed. Please check the test results.'
+            archiveArtifacts artifacts: '**/test-results.xml', allowEmptyArchive: true
         }
     }
 }
