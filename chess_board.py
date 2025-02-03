@@ -1,8 +1,17 @@
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtGui import QPainter, QColor, QPixmap
 from PyQt6.QtCore import Qt
+import chess
+import os
 
 class ChessBoardWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.board = chess.Board()
+        self.selected_square = None
+        self.load_pieces()
+        self.setEnabled(True)
+
     # ...existing initialization code...
 
     def paintEvent(self, event):

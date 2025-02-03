@@ -4,10 +4,9 @@ import chess.pgn
 import time
 import io
 import logging
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QMessageBox
 from PyQt6.QtCore import QUrl
 from PyQt6.QtQml import QQmlApplicationEngine
-from ubuntu_components import *
 from lichess_handler import LichessHandler
 from config import lichess_token
 from layout_manager import LayoutManager

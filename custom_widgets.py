@@ -48,10 +48,10 @@ class ClockWidget(QLabel):
     @property
     def time_str(self):
         if self.seconds_remaining <= 0:
-            return "0:00"
+            return "00:00"
         minutes = int(self.seconds_remaining // 60)
         seconds = int(self.seconds_remaining % 60)
-        return f"{minutes}:{seconds:02d}"
+        return f"{minutes:02d}:{seconds:02d}"  # Changed format to always show 2 digits
 
     def paintEvent(self, event):
         painter = QPainter(self)
