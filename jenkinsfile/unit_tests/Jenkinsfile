@@ -16,7 +16,7 @@ pipeline {
                     podman run --rm --memory=2g \\
                       -v \${WORKSPACE}/szaszki-chess:/app \\
                       -w /app \\
-                      pytest \\
+                      safesecurity/pytest \\
                       sh -c "pip install -r requirements.txt &&
                              python -m pytest -v --junitxml=test-results.xml"
                 """
