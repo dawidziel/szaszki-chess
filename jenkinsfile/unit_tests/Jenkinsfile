@@ -17,7 +17,7 @@ pipeline {
                      -v ${WORKSPACE}/szaszki-chess:/app \\
                      -w /app \\
                      python:3.11 \\
-                     sh -c "apt-get update && apt-get install -y libgl1-mesa-glx libxkbcommon0 && pip install -r requirements.txt && pytest --junitxml=test-results.xml"
+                     sh -c "apt-get update && apt-get install -y libgl1-mesa-glx libxkbcommon0 libegl1-mesa && pip install -r requirements.txt && pytest --junitxml=test-results.xml"
                 """
             }
         }
