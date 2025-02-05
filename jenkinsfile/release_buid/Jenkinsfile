@@ -20,6 +20,8 @@ pipeline {
 
         stage('Set up Python') {
             steps {
+                // Install git in the container
+                sh "apt-get update -y && apt-get install -y git"
                 // Container already has Python so only set up virtualenv
                 sh "python3 -m venv ${VENV_DIR}"
                 sh ". ${VENV_DIR}/bin/activate && python -m pip install --upgrade pip"
