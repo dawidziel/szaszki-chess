@@ -20,7 +20,9 @@ class LayoutSelector(QDialog):
         self.layouts = {
             "Desktop (1920x1440)": "layout_1920x1440_horizontal",
             "Widescreen (1920x1080)": "layout_1920x1080_horizontal",
-            "Tablet/Portrait (1440x1920)": "layout_1440x1920_vertical"
+            "Tablet/Portrait (1440x1920)": "layout_1440x1920_vertical",
+            "Desktop (2220x1080)": "layout_2220x1080_horizontal",
+            "Tablet/Portrait (1080x2220)": "layout_1080x2220_vertical"
         }
 
         self.radio_buttons = {}

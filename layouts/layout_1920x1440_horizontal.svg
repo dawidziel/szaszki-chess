@@ -12,34 +12,33 @@
     <text x="500" y="50" fill="black" font-size="32" font-family="Palatino">Puzzles</text>
     <text x="680" y="50" fill="black" font-size="32" font-family="Palatino">Settings</text>
 
-    <!-- Main Chess Board - High contrast squares -->
+    <!-- Main Chess Board -->
     <rect x="20" y="100" width="1300" height="1300" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
 
-    <!-- Right Side Panel - White background with black border -->
+    <!-- Right Side Panel -->
     <rect x="1340" y="100" width="560" height="1300" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
 
-    <!-- Move History - Clear white background -->
-    <rect x="1360" y="120" width="520" height="1000" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
-    <text x="1620" y="150" fill="#000000" font-size="32" text-anchor="middle">Move History</text>
+    <!-- Player Info -->
+    <rect x="1360" y="120" width="520" height="50" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
+    <text x="1620" y="150" fill="#000000" font-size="20" text-anchor="middle">White: PlayerA (1500)   Black: PlayerB (1480)</text>
 
-    <!-- Navigation Controls - Dotted borders -->
-    <rect x="1360" y="1140" width="250" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
-    <rect x="1630" y="1140" width="250" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
-    <text x="1485" y="1190" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Previous</text>
-    <text x="1755" y="1190" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Next</text>
+    <!-- Chat Box - Now above Move History -->
+    <rect x="1360" y="180" width="520" height="400" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
+    <text x="1620" y="210" fill="#000000" font-size="24" text-anchor="middle">Chat</text>
 
-    <!-- Timer Display with black and white clocks -->
-    <!-- White clock on white background -->
-    <rect x="1360" y="1240" width="250" height="120" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
-    <circle cx="1420" cy="1300" r="40" fill="none" stroke="#000000" stroke-width="2" />
-    <line x1="1420" y1="1270" x2="1420" y2="1300" stroke="#000000" stroke-width="2" />
-    <line x1="1420" y1="1300" x2="1445" y2="1300" stroke="#000000" stroke-width="2" />
-    <text x="1485" y="1310" fill="black" font-size="32" font-family="Palatino" text-anchor="right">05:00</text>
+    <!-- Move History - Below Chat -->
+    <rect x="1360" y="590" width="520" height="400" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
+    <text x="1620" y="620" fill="#000000" font-size="24" text-anchor="middle">Move History</text>
 
-    <!-- Black clock on black background -->
-    <rect x="1630" y="1240" width="250" height="120" fill="#000000" stroke="#000000" stroke-width="2" />
-    <circle cx="1690" cy="1300" r="40" fill="none" stroke="#FFFFFF" stroke-width="2" />
-    <line x1="1690" y1="1270" x2="1690" y2="1300" stroke="#FFFFFF" stroke-width="2" />
-    <line x1="1690" y1="1300" x2="1715" y2="1300" stroke="#FFFFFF" stroke-width="2" />
-    <text x="1755" y="1310" fill="white" font-size="32" font-family="Palatino" text-anchor="right">05:00</text>
+    <!-- Navigation Controls - Changed Next to Hint -->
+    <rect x="1360" y="1010" width="250" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="1630" y="1010" width="250" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="1485" y="1060" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Previous</text>
+    <text x="1755" y="1060" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Ask for Hint</text>
+
+    <!-- Timer Display -->
+    <rect x="1360" y="1110" width="250" height="120" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+    <rect x="1630" y="1110" width="250" height="120" fill="#000000" stroke="#000000" stroke-width="2" />
+    <text x="1485" y="1180" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">05:00</text>
+    <text x="1755" y="1180" fill="white" font-size="32" font-family="Palatino" text-anchor="middle">05:00</text>
 </svg>

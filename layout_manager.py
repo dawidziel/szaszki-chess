@@ -92,12 +92,12 @@ class LayoutManager:
         margin = tuple(max(20, int(m * scale_factor)) for m in profile['margin'])
 
         self.main_window.resize(*ws)
-        self.main_window.setFixedSize(*ws)
+        self.main_window.showFullScreen()
 
         self.main_window.board_widget.setFixedSize(*bs)
         self.main_window.move_history.setFixedSize(*hs)
 
-        for btn_widget in [self.main_window.prev_button, self.main_window.next_button]:
+        for btn_widget in [self.main_window.prev_button, self.main_window.hint_button]:
             btn_widget.setFixedSize(*btn)
 
         self.main_window.white_clock.setFixedSize(*clk)
@@ -176,7 +176,7 @@ class LayoutManager:
         nav_layout = QHBoxLayout()
         nav_layout.setSpacing(20)
         nav_layout.addWidget(self.main_window.prev_button)
-        nav_layout.addWidget(self.main_window.next_button)
+        nav_layout.addWidget(self.main_window.hint_button)
         right_panel.addLayout(nav_layout)
         clock_layout = QHBoxLayout()
         clock_layout.setSpacing(20)
@@ -207,7 +207,7 @@ class LayoutManager:
         left_panel.addWidget(self.main_window.move_history, stretch=1)
         nav_layout = QHBoxLayout()
         nav_layout.setSpacing(20)
-        for btn in [self.main_window.prev_button, self.main_window.next_button]:
+        for btn in [self.main_window.prev_button, self.main_window.hint_button]:
             btn.setFixedSize(480, 80)
             nav_layout.addWidget(btn)
         left_panel.addLayout(nav_layout)

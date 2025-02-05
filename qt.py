@@ -96,21 +96,49 @@ class ChessBoardWidget(QWidget):
                 self.selected_square = square
         else:
             move = chess.Move(self.selected_square, square)
-            if move in self.board.legal_moves and (not self.main_window.allowed_moves or move in self.main_window.allowed_moves):
-                self.board.push(move)
-                logging.debug(f"Player move: {move.uci()}")
-                # NEW: Track moves for navigation if not in puzzle mode
-                if not self.main_window.solving_puzzle:
-                    self.main_window.game_moves.append(move)
-                    self.main_window.current_move_pointer = len(self.main_window.game_moves)
-                    # NEW: Save board state
-                    self.main_window.game_states.append(self.board.fen())
-                self.main_window.current_move_index += 1
-                self.main_window.switch_turn()
-                self.main_window.check_game_result()
-                # Only send moves to bot if we're in a bot game and not solving puzzles
-                if self.main_window.playing_vs_bot and not self.main_window.solving_puzzle:
-                    self.main_window.send_move_to_bot(move)
+            if self.main_window.solving_puzzle:
+                # Check if the move is legal
+                if move in self.board.legal_moves:
+                    # Check if the move is the allowed move
+                    if self.main_window.allowed_moves and move in self.main_window.allowed_moves:
+                        # Valid move, push it to the board
+                        self.board.push(move)
+                        self.main_window.move_list.append(
+                            f"{'White' if self.board.turn == chess.BLACK else 'Black'}: {move.uci()}"
+                        )
+                        self.main_window.game_states.append(self.board.fen())
+                        self.main_window.current_move_index += 1
+                        if self.main_window.current_move_index < len(self.main_window.solution_moves):
+                            self.main_window.allowed_moves = [self.main_window.solution_moves[self.main_window.current_move_index]]
+                        else:
+                            self.main_window.allowed_moves = None
+                    else:
+                        # Incorrect move, undo and prompt failure
+                        self.main_window.chat_box.appendPlainText(
+                            f"You failed to solve the puzzle. Puzzle rating: {self.main_window.puzzle_rating}"
+                        )
+                        self.board.pop()  # Undo the move
+                        if self.main_window.move_list:
+                            self.main_window.move_list.pop()
+                        if self.main_window.game_states:
+                            self.main_window.game_states.pop()
+                        self.main_window.puzzle_failed = True
+                else:
+                    # Illegal move, ignore
+                    pass
+            else:
+                if move in self.board.legal_moves and (not self.main_window.allowed_moves or move in self.main_window.allowed_moves):
+                    self.board.push(move)
+                    logging.debug(f"Player move: {move.uci()}")
+                    if not self.main_window.solving_puzzle:
+                        self.main_window.game_moves.append(move)
+                        self.main_window.current_move_pointer = len(self.main_window.game_moves)
+                        self.main_window.game_states.append(self.board.fen())
+                    self.main_window.current_move_index += 1
+                    self.main_window.switch_turn()
+                    self.main_window.check_game_result()
+                    if self.main_window.playing_vs_bot and not self.main_window.solving_puzzle:
+                        self.main_window.send_move_to_bot(move)
             self.selected_square = None
         self.update()
 
@@ -119,10 +147,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Chess")
 
-        # Show layout selector
-        self.selected_layout = self.show_layout_selector()
-
-        # Initialize components
+        # Remove layout selector and just initialize components
         self.board = chess.Board()
         self.board_widget = ChessBoardWidget(self.board, self)
         self.lichess_handler = LichessHandler(lichess_token)
@@ -148,9 +173,8 @@ class MainWindow(QMainWindow):
         screen = QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.geometry()
-            orientation = "vertical" if geometry.height() > geometry.width() else "horizontal"
-            profile = f"layout_{geometry.width()}x{geometry.height()}_{orientation}"
-            self.layout_manager.apply_layout(profile)
+            # Always use the default layout and let it scale
+            self.layout_manager.apply_layout("layout_1920x1440_horizontal")
 
     def init_game_state(self):
         self.playing_vs_bot = False
@@ -186,12 +210,6 @@ class MainWindow(QMainWindow):
             self.white_clock.update()
             self.black_clock.update()
 
-    def show_layout_selector(self):
-        selector = LayoutSelector(self)
-        if selector.exec():
-            return selector.get_selected_layout()
-        return "layout_1920x1440_horizontal"
-
     def init_ui_elements(self):
         # Create clocks
         self.white_clock = ClockWidget(is_white=True)
@@ -199,8 +217,8 @@ class MainWindow(QMainWindow):
 
         # Create navigation buttons with size policy for responsiveness.
         self.prev_button = QPushButton("Previous")
-        self.next_button = QPushButton("Next")
-        for btn in [self.prev_button, self.next_button]:
+        self.hint_button = QPushButton("Ask for Hint")  # Changed from "Next" to "Ask for Hint"
+        for btn in [self.prev_button, self.hint_button]:
             btn.setFont(QFont("Palatino", 32))
             btn.setFixedHeight(80)  # Keep height fixed if necessary
             btn.setSizePolicy(btn.sizePolicy().horizontalPolicy(), btn.sizePolicy().verticalPolicy())
@@ -217,12 +235,18 @@ class MainWindow(QMainWindow):
         self.player_info.setFont(QFont("Palatino", 10))
         self.player_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # NEW: Add chat box for user feedback
+        self.chat_box = QPlainTextEdit()
+        self.chat_box.setReadOnly(True)
+        self.chat_box.setFont(QFont("Palatino", 12))
+        self.chat_box.setPlaceholderText("Chat messages...")
+
         # Set window background to white
         self.setStyleSheet("QMainWindow { background-color: white; }")
 
         # Connect signals
         self.prev_button.clicked.connect(self.prev_move)
-        self.next_button.clicked.connect(self.next_move)
+        self.hint_button.clicked.connect(self.ask_for_hint)  # Changed from next_move to ask_for_hint
 
     def setup_timer_labels(self):
         for label in [self.white_timer_label, self.black_timer_label]:
@@ -368,17 +392,18 @@ class MainWindow(QMainWindow):
 
     def show_todays_puzzles(self):
         puzzle = self.lichess_handler.fetch_daily_puzzle()
+        self.puzzle_rating = puzzle['puzzle']['rating']  # Store puzzle rating for chat feedback
         pgn = puzzle['game']['pgn']
         game = chess.pgn.read_game(io.StringIO(pgn))
         self.board = game.end().board()
         self.board_widget.board = self.board
         self.solution_moves = [chess.Move.from_uci(move) for move in puzzle['puzzle']['solution']]
         self.current_move_index = 0
-        self.allowed_moves = [self.solution_moves[self.current_move_index]]  # Set initial allowed move
-        self.solving_puzzle = True  # Set puzzle mode
+        self.allowed_moves = [self.solution_moves[self.current_move_index]]
+        self.solving_puzzle = True
+        self.puzzle_failed = False  # NEW: Initialize puzzle failure flag
         self.board_widget.update()
-        self.move_history.setPlainText(f"Today's Puzzle\nMake your move!")
-        # Stop and hide clocks during puzzles
+        self.move_history.setPlainText("Today's Puzzle\nMake your move!")
         self.white_clock.stop()
         self.black_clock.stop()
         self.white_clock.hide()
@@ -421,6 +446,16 @@ class MainWindow(QMainWindow):
                 # Optionally update move_list here if desired.
                 self.update_move_history()
         self.board_widget.update()
+
+    def ask_for_hint(self):
+        if self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves:
+            if self.current_move_index < len(self.solution_moves):
+                hint_move = self.solution_moves[self.current_move_index]
+                self.chat_box.appendPlainText(f"Hint: Try {hint_move.uci()}")
+            else:
+                self.chat_box.appendPlainText("No more hints available. Puzzle solved!")
+        else:
+            self.chat_box.appendPlainText("Hints are only available in puzzle mode.")
 
     def highlight_correct_move(self):
         pass  # No longer highlighting the correct move

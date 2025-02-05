@@ -33,6 +33,16 @@ pipeline {
                 sh ". ${VENV_DIR}/bin/activate && clickable build"
             }
         }
+
+        stage('Compile for Ubuntu Touch') {
+            steps {
+                // Compile for Ubuntu Touch using clickable build target
+                sh ". ${VENV_DIR}/bin/activate && clickable build --target ubuntu-touch"
+                // Create target directory and copy compiled app
+                sh "mkdir -p /home/app"
+                sh "cp -r build/* /home/app/"
+            }
+        }
     }
 
     post {

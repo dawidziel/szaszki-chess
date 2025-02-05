@@ -1,22 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
-    <!-- Main Chess Board -->
-    <rect x="20" y="40" width="1000" height="1000" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+<svg width="1920" height="1440" xmlns="http://www.w3.org/2000/svg">
+    <!-- Top Menu Bar -->
+    <rect x="0" y="0" width="1920" height="80" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+    <rect x="40" y="10" width="200" height="60" fill="none" stroke="#000000" stroke-width="2" />
+    <text x="140" y="50" fill="black" font-size="32" text-anchor="middle">New Game</text>
+    <rect x="260" y="10" width="200" height="60" fill="none" stroke="#000000" stroke-width="2" />
+    <text x="360" y="50" fill="black" font-size="32" text-anchor="middle">Puzzles</text>
+    <rect x="480" y="10" width="200" height="60" fill="none" stroke="#000000" stroke-width="2" />
+    <text x="580" y="50" fill="black" font-size="32" text-anchor="middle">Settings</text>
 
-    <!-- Right Panel -->
-    <rect x="1040" y="40" width="860" height="1000" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+    <!-- Main Chess Board -->
+    <rect x="20" y="100" width="1300" height="1300" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+
+    <!-- Right Side Panel -->
+    <rect x="1340" y="100" width="560" height="1300" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+
+    <!-- Player Info -->
+    <rect x="1360" y="120" width="520" height="50" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
+    <text x="1620" y="150" fill="#000000" font-size="20" text-anchor="middle">Player Info</text>
+
+    <!-- Chat Box -->
+    <rect x="1360" y="180" width="520" height="400" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
+    <text x="1620" y="210" fill="#000000" font-size="24" text-anchor="middle">Chat</text>
 
     <!-- Move History -->
-    <rect x="1060" y="60" width="820" height="700" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
-    <text x="1470" y="90" fill="#000000" font-size="32" font-family="Palatino" text-anchor="middle">Move History</text>
+    <rect x="1360" y="590" width="520" height="400" fill="#FFFFFF" stroke="#000000" stroke-width="1" />
+    <text x="1620" y="620" fill="#000000" font-size="24" text-anchor="middle">Move History</text>
 
     <!-- Navigation Controls -->
-    <rect x="1060" y="780" width="400" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
-    <rect x="1480" y="780" width="400" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
-    <text x="1260" y="830" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Previous</text>
-    <text x="1680" y="830" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Next</text>
+    <rect x="1360" y="1010" width="250" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="1630" y="1010" width="250" height="80" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="1485" y="1060" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Previous</text>
+    <text x="1755" y="1060" fill="black" font-size="32" font-family="Palatino" text-anchor="middle">Ask for Hint</text>
 
     <!-- Timer Display -->
-    <rect x="1060" y="880" width="400" height="120" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
-    <rect x="1480" y="880" width="400" height="120" fill="#000000" stroke="#000000" stroke-width="2" />
+    <rect x="1360" y="1110" width="250" height="120" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+    <rect x="1630" y="1110" width="250" height="120" fill="#000000" stroke="#000000" stroke-width="2" />
 </svg>

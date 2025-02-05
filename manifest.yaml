@@ -1,11 +1,33 @@
 name: szaszki-chess.dywan
 version: 1.0.0
-architecture: all
 framework: ubuntu-sdk-20.04
-description: A chess game with Lichess integration
-maintainer: Your Name <your.email@example.com>
-title: Szaszki Chess
-hooks:
+grade: stable
+confinement: strict
+base: ubuntu-sdk-20.04
+summary: Chess game with Lichess integration
+description: |
+  A modern chess application with Lichess integration,
+  puzzle solving, and bot play capabilities.
+
+apps:
   szaszki-chess:
-    desktop: szaszki-chess.desktop
-    apparmor: szaszki-chess.apparmor
+    command: bin/qt.py
+    plugs:
+      - network
+      - desktop
+      - x11
+      - wayland
+      - opengl
+      - unity7
+
+parts:
+  szaszki-chess:
+    plugin: python
+    source: .
+    stage-packages:
+      - python3-pyqt6
+      - python3-chess
+      - python3-berserk
+    python-packages:
+      - berserk
+      - python-chess
