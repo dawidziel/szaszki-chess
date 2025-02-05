@@ -167,6 +167,13 @@ class MainWindow(QMainWindow):
         self.settings_menu = SettingsMenu(self)
         self.settings_menu.settingsChanged.connect(self.apply_settings)
         self.is_fullscreen = False
+        logging.debug("MainWindow initialized.")
+
+    # NEW: Add a method to debug-print the widget tree
+    def debug_print_widget_tree(self, widget, indent=""):
+        logging.debug(f"{indent}{widget.__class__.__name__}")
+        for child in widget.findChildren(QWidget):
+            self.debug_print_widget_tree(child, indent + "  ")
 
     def auto_apply_layout(self):
         from PyQt6.QtGui import QGuiApplication
@@ -262,6 +269,7 @@ class MainWindow(QMainWindow):
         pass
 
     def new_game(self):
+        logging.debug("new_game() called.")
         self.board.reset()
         self.manual_game = True
         self.playing_vs_bot = False
@@ -490,8 +498,9 @@ class MainWindow(QMainWindow):
             self.layout_manager.apply_layout(new_layout)
 
     def keyPressEvent(self, event):
-        # Add ESC key to exit fullscreen
+        logging.debug(f"Key pressed: {event.key()}")
         if event.key() == Qt.Key.Key_Escape and self.is_fullscreen:
+            logging.debug("Exiting fullscreen.")
             self.showNormal()
             self.is_fullscreen = False
             self.settings_menu.fullscreen_check.setChecked(False)
@@ -546,6 +555,10 @@ def main():
     # Initialize main window
     window = MainWindow()
     window.show()
+    logging.debug("MainWindow shown.")
+    # NEW: Print the widget tree for debugging
+    window.debug_print_widget_tree(window)
+    logging.debug("Widget tree printed.")
 
     return app.exec()
 

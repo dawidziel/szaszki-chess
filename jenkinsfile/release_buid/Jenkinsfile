@@ -37,7 +37,8 @@ pipeline {
 
         stage('Build the game') {
             steps {
-                sh ". ${VENV_DIR}/bin/activate && clickable build"
+                // Pipe a "y" to auto-accept builder detection.
+                sh ". ${VENV_DIR}/bin/activate && echo y | clickable build"
             }
         }
 
