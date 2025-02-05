@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.11-slim'
+            args '-v /home/app:/home/app'
+        }
+    }
 
     environment {
         PYTHON_VERSION = '3.11.2'
@@ -15,8 +20,7 @@ pipeline {
 
         stage('Set up Python') {
             steps {
-                sh 'sudo apt-get update'
-                sh 'sudo apt-get install -y python3 python3-venv'
+                // Container already has Python so only set up virtualenv
                 sh "python3 -m venv ${VENV_DIR}"
                 sh ". ${VENV_DIR}/bin/activate && python -m pip install --upgrade pip"
             }
