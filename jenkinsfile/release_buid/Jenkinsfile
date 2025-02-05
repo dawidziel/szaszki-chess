@@ -2,7 +2,8 @@ pipeline {
     agent {
         docker {
             image 'python:3.11-slim'
-            args '-v /home/app:/home/app'
+            // Add --user root to run as root so that apt-get works properly.
+            args '--user root -v /home/app:/home/app'
         }
     }
 
