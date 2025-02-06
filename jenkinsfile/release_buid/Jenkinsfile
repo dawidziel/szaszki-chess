@@ -37,8 +37,8 @@ pipeline {
 
         stage('Build the game') {
             steps {
-                // Pipe a "y" to auto-accept builder detection.
-                sh ". ${VENV_DIR}/bin/activate && echo y | clickable build"
+                // Use manifest file to avoid interactive prompts.
+                sh ". ${VENV_DIR}/bin/activate && clickable build --manifest manifest.yaml"
             }
         }
 
