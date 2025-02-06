@@ -1,6 +1,8 @@
 import berserk
 import logging
 import time
+import traceback
+import chess
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -33,17 +35,36 @@ class LichessHandler:
 
     def make_move_bot(self, move):
         if self.game_id:
+            move_uci = move.uci() if isinstance(move, chess.Move) else str(move)
             for attempt in range(5):
                 try:
-                    logging.debug(f"Making move: {move} in game ID: {self.game_id}, attempt: {attempt + 1}")
-                    self.client.bots.make_move(self.game_id, move)
-                    logging.debug(f"Made move: {move} in game ID: {self.game_id}")
-                    break
+                    logging.debug(f"Attempting move: {move_uci} in game {self.game_id} (attempt {attempt+1}/5)")
+                    start_time = time.time()
+                    self.client.bots.make_move(self.game_id, move_uci)
+                    latency = int((time.time() - start_time) * 1000)
+                    logging.debug(f"Successfully made move {move_uci} in {latency}ms")
+                    return  # Success - exit the loop
                 except berserk.exceptions.ResponseError as e:
-                    logging.error(f"Failed to make move: {move} in game ID: {self.game_id} - {e}")
+                    error_details = {
+                        'status_code': e.status_code,
+                        'message': str(e),
+                        'response': getattr(e, 'response', None),
+                        'attempt': attempt+1,
+                        'game_id': self.game_id,
+                        'move': move_uci
+                    }
+                    logging.error("Move failed:\n" + "\n".join(
+                        f"{k}: {v}" for k,v in error_details.items()
+                    ))
+                    logging.debug("Full traceback:\n%s", traceback.format_exc())
                     time.sleep(1)
+                except Exception as e:
+                    logging.error(f"Unexpected error making move {move_uci}: {str(e)}")
+                    logging.debug("Full traceback:\n%s", traceback.format_exc())
+                    time.sleep(1)
+            logging.error(f"Permanently failed to make move {move_uci} after 5 attempts")
         else:
-            logging.error("No game ID found. Cannot make move.")
+            logging.error("No active game ID - cannot make move")
 
     def get_game_state(self):
         if self.stream:
