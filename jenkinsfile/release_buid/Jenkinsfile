@@ -38,7 +38,7 @@ pipeline {
         stage('Build the game') {
             steps {
                 // Use manifest file to avoid interactive prompts.
-                sh ". ${VENV_DIR}/bin/activate && clickable build --manifest manifest.yaml"
+                sh ". ${VENV_DIR}/bin/activate && clickable build --config manifest.yaml"
             }
         }
 
