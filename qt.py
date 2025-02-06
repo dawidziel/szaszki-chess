@@ -110,19 +110,24 @@ class ChessBoardWidget(QWidget):
                         self.main_window.current_move_index += 1
                         if self.main_window.current_move_index < len(self.main_window.solution_moves):
                             self.main_window.allowed_moves = [self.main_window.solution_moves[self.main_window.current_move_index]]
+                            # Auto-play the next move after a short delay.
+                            from PyQt6.QtCore import QTimer
+                            QTimer.singleShot(500, self.main_window.auto_play_next_move)
                         else:
                             self.main_window.allowed_moves = None
+                            self.main_window.chat_box.appendPlainText(
+                                f"Congratulation you solved the puzzle! Puzzle rating: {self.main_window.puzzle_rating}"
+                            )
+                            # Show Next Puzzle button
+                            self.main_window.layout_manager.next_puzzle_button.setVisible(True)
                     else:
-                        # Incorrect move, undo and prompt failure
+                        # Incorrect move: do not update the board; let white try again.
                         self.main_window.chat_box.appendPlainText(
-                            f"You failed to solve the puzzle. Puzzle rating: {self.main_window.puzzle_rating}"
+                            f"Incorrect move. Puzzle rating: {self.main_window.puzzle_rating}. White, please try again."
                         )
-                        self.board.pop()  # Undo the move
-                        if self.main_window.move_list:
-                            self.main_window.move_list.pop()
-                        if self.main_window.game_states:
-                            self.main_window.game_states.pop()
                         self.main_window.puzzle_failed = True
+                        # Show Next Puzzle button on failure if desired
+                        self.main_window.layout_manager.next_puzzle_button.setVisible(True)
                 else:
                     # Illegal move, ignore
                     pass
@@ -167,6 +172,7 @@ class MainWindow(QMainWindow):
         self.settings_menu = SettingsMenu(self)
         self.settings_menu.settingsChanged.connect(self.apply_settings)
         self.is_fullscreen = False
+        self.next_puzzle_button = None  # Add this
         logging.debug("MainWindow initialized.")
 
     # NEW: Add a method to debug-print the widget tree
@@ -347,7 +353,7 @@ class MainWindow(QMainWindow):
             self.white_clock.time = self.format_time(self.white_time)
         else:
             self.black_clock.time = self.format_time(self.black_time)
-        self.white_clock.update()
+        self.white_clock.update() 
         self.black_clock.update()
 
     def switch_turn(self):
@@ -400,7 +406,10 @@ class MainWindow(QMainWindow):
 
     def show_todays_puzzles(self):
         puzzle = self.lichess_handler.fetch_daily_puzzle()
-        self.puzzle_rating = puzzle['puzzle']['rating']  # Store puzzle rating for chat feedback
+        if not puzzle:
+            return
+            
+        self.puzzle_rating = puzzle['puzzle']['rating']
         pgn = puzzle['game']['pgn']
         game = chess.pgn.read_game(io.StringIO(pgn))
         self.board = game.end().board()
@@ -409,13 +418,10 @@ class MainWindow(QMainWindow):
         self.current_move_index = 0
         self.allowed_moves = [self.solution_moves[self.current_move_index]]
         self.solving_puzzle = True
-        self.puzzle_failed = False  # NEW: Initialize puzzle failure flag
+        self.puzzle_failed = False
         self.board_widget.update()
         self.move_history.setPlainText("Today's Puzzle\nMake your move!")
-        self.white_clock.stop()
-        self.black_clock.stop()
-        self.white_clock.hide()
-        self.black_clock.hide()
+        self.layout_manager.next_puzzle_button.setVisible(False)  # Reset visibility
 
     def prev_move(self):
         if self.solving_puzzle and hasattr(self, "solution_moves") and self.solution_moves:
@@ -531,6 +537,52 @@ class MainWindow(QMainWindow):
     def update_move_history(self):
         # NEW: Update the move history display in PGN format
         self.move_history.setPlainText(self.format_move_history())
+
+    def auto_play_next_move(self):
+        """
+        Automatically plays the next move in puzzle mode if available.
+        """
+        if self.solving_puzzle and self.allowed_moves:
+            auto_move = self.allowed_moves[0]
+            if auto_move in self.board.legal_moves:
+                self.board.push(auto_move)
+                self.move_list.append(
+                    f"{'White' if self.board.turn == chess.BLACK else 'Black'}: {auto_move.uci()}"
+                )
+                self.game_states.append(self.board.fen())
+                self.current_move_index += 1
+                if self.current_move_index < len(self.solution_moves):
+                    self.allowed_moves = [self.solution_moves[self.current_move_index]]
+                else:
+                    self.allowed_moves = None
+                self.board_widget.update()
+
+    def load_next_puzzle(self):
+        try:
+            puzzle = self.lichess_handler.get_next_puzzle()
+            if puzzle:
+                # Clear previous puzzle state
+                self.board = chess.Board()
+                self.board_widget.board = self.board
+                self.board_widget.update()
+                
+                # Extract solution moves from puzzle data
+                self.solution_moves = [chess.Move.from_uci(move) for move in puzzle['puzzle']['solution']]
+                self.current_move_index = 0
+                
+                # Set board to puzzle's initial position
+                fen = puzzle['game']['fen']  # Direct access to FEN
+                self.board.set_fen(fen)
+                logging.debug(f"Loaded puzzle FEN: {fen}")
+                
+                # Force UI updates
+                self.board_widget.reset_board()
+                self.move_history.setPlainText(f"New Puzzle: {puzzle['puzzle']['id']}\nRating: {puzzle['puzzle']['rating']}")
+                self.update()
+                
+        except Exception as e:
+            logging.error(f"Puzzle loading failed: {e}")
+            self.chat_box.appendPlainText("Error loading puzzle. Please try again.")
 
 def main():
     import os

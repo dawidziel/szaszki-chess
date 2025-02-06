@@ -72,3 +72,11 @@ class LichessHandler:
         except Exception as e:
             logging.error(f"Failed to get online bots: {e}")
             return []
+
+    def get_next_puzzle(self):
+        try:
+            # Correct method for /api/puzzle/next endpoint
+            return self.client.puzzles.get_daily()
+        except Exception as e:
+            logging.error(f"Failed to fetch next puzzle: {e}")
+            return None
