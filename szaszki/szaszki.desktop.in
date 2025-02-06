@@ -1,7 +1,0 @@
-[Desktop Entry]
-_Name=szaszki!chess!
-Exec=qmlscene %U qml/Main.qml
-Icon=assets/logo.svg
-Terminal=false
-Type=Application
-X-Lomiri-Touch=true

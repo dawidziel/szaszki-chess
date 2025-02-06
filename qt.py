@@ -7,7 +7,7 @@ import io
 import logging
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QMessageBox, QLabel  # Added QLabel
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QScreen, QGuiApplication, QFont
-from PyQt6.QtCore import QUrl, QTimer, Qt  # Added QTimer and Qt
+from PyQt6.QtCore import QUrl, QTimer, Qt, QMetaObject, QThread, QObject, pyqtSignal, pyqtSlot  # Added QTimer, Qt, and QMetaObject
 from PyQt6.QtQml import QQmlApplicationEngine
 from lichess_handler import LichessHandler
 from config import lichess_token
@@ -111,8 +111,7 @@ class ChessBoardWidget(QWidget):
                         if self.main_window.current_move_index < len(self.main_window.solution_moves):
                             self.main_window.allowed_moves = [self.main_window.solution_moves[self.main_window.current_move_index]]
                             # Auto-play the next move after a short delay.
-                            from PyQt6.QtCore import QTimer
-                            QTimer.singleShot(500, self.main_window.auto_play_next_move)
+                            self.main_window.safe_timer_start(500, self.main_window.auto_play_next_move)
                         else:
                             self.main_window.allowed_moves = None
                             self.main_window.chat_box.appendPlainText(
@@ -319,11 +318,32 @@ class MainWindow(QMainWindow):
             self.show_result("Failed to create bot game.")
 
     def send_move_to_bot(self, move):
-        if self.lichess_handler.make_move_bot(move.uci()):
-            logging.debug(f"Sent move to bot: {move.uci()}")
-            self.update_bot_move()
-        else:
-            logging.error(f"Failed to send move to bot: {move.uci()}")
+        """Send move to bot in a separate thread"""
+        from PyQt6.QtCore import QThread, QObject, pyqtSignal
+        
+        class BotWorker(QObject):
+            finished = pyqtSignal()
+            
+            def __init__(self, handler, game_id, move):
+                super().__init__()
+                self.handler = handler
+                self.game_id = game_id
+                self.move = move
+                
+            def run(self):
+                try:
+                    self.handler.make_move_bot(self.move)
+                finally:
+                    self.finished.emit()
+        
+        self.bot_thread = QThread()
+        self.bot_worker = BotWorker(self.lichess_handler, self.lichess_handler.game_id, move)
+        self.bot_worker.moveToThread(self.bot_thread)
+        self.bot_thread.started.connect(self.bot_worker.run)
+        self.bot_worker.finished.connect(self.bot_thread.quit)
+        self.bot_worker.finished.connect(self.bot_worker.deleteLater)
+        self.bot_thread.finished.connect(self.bot_thread.deleteLater)
+        self.bot_thread.start()
 
     def update_bot_move(self):
         game_state = self.lichess_handler.get_game_state()
@@ -559,30 +579,63 @@ class MainWindow(QMainWindow):
 
     def load_next_puzzle(self):
         try:
-            puzzle = self.lichess_handler.get_next_puzzle()
-            if puzzle:
-                # Clear previous puzzle state
-                self.board = chess.Board()
-                self.board_widget.board = self.board
-                self.board_widget.update()
+            # Run blocking network call in a thread
+            from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
+            
+            class PuzzleLoader(QObject):
+                loaded = pyqtSignal(object)
+                error = pyqtSignal(str)
                 
-                # Extract solution moves from puzzle data
-                self.solution_moves = [chess.Move.from_uci(move) for move in puzzle['puzzle']['solution']]
-                self.current_move_index = 0
-                
-                # Set board to puzzle's initial position
-                fen = puzzle['game']['fen']  # Direct access to FEN
-                self.board.set_fen(fen)
-                logging.debug(f"Loaded puzzle FEN: {fen}")
-                
-                # Force UI updates
-                self.board_widget.reset_board()
-                self.move_history.setPlainText(f"New Puzzle: {puzzle['puzzle']['id']}\nRating: {puzzle['puzzle']['rating']}")
-                self.update()
-                
+                @pyqtSlot()
+                def load(self):
+                    try:
+                        puzzle = self.handler.get_next_puzzle()
+                        self.loaded.emit(puzzle)
+                    except Exception as e:
+                        self.error.emit(str(e))
+            
+            self.puzzle_loader = QThread()
+            self.loader_worker = PuzzleLoader()
+            self.loader_worker.handler = self.lichess_handler
+            self.loader_worker.moveToThread(self.puzzle_loader)
+            self.puzzle_loader.started.connect(self.loader_worker.load)
+            self.loader_worker.loaded.connect(self.handle_puzzle_loaded)
+            self.loader_worker.error.connect(lambda e: self.chat_box.appendPlainText(f"Error: {e}"))
+            self.loader_worker.loaded.connect(self.puzzle_loader.quit)
+            self.loader_worker.error.connect(self.puzzle_loader.quit)
+            self.puzzle_loader.start()
+            
         except Exception as e:
             logging.error(f"Puzzle loading failed: {e}")
             self.chat_box.appendPlainText("Error loading puzzle. Please try again.")
+
+    def handle_puzzle_loaded(self, puzzle):
+        """Handle loaded puzzle data in main thread"""
+        if not puzzle:
+            return
+            
+        self.puzzle_rating = puzzle['puzzle']['rating']
+        pgn = puzzle['game']['pgn']
+        game = chess.pgn.read_game(io.StringIO(pgn))
+        self.board = game.end().board()
+        self.board_widget.board = self.board
+        self.solution_moves = [chess.Move.from_uci(move) for move in puzzle['puzzle']['solution']]
+        self.current_move_index = 0
+        self.allowed_moves = [self.solution_moves[self.current_move_index]]
+        self.solving_puzzle = True
+        self.puzzle_failed = False
+        self.board_widget.update()
+        self.move_history.setPlainText("Today's Puzzle\nMake your move!")
+        self.layout_manager.next_puzzle_button.setVisible(False)  # Reset visibility
+
+    def safe_timer_start(self, interval, callback):
+        """Thread-safe timer initialization"""
+        QMetaObject.invokeMethod(
+            QTimer(self),
+            'singleShot',
+            Qt.ConnectionType.QueuedConnection,
+            QMetaObject.ArgumentList([interval, callback])
+        )
 
 def main():
     import os
