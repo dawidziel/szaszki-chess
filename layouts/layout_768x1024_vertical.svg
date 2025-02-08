@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="768" height="1024" xmlns="http://www.w3.org/2000/svg">
+    <!-- Top Menu Bar -->
+    <rect x="0" y="0" width="768" height="60" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <!-- Top Menu Buttons -->
+    <rect x="20" y="10" width="150" height="40" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="95" y="35" fill="black" font-size="20" text-anchor="middle">New Game</text>
+    <rect x="180" y="10" width="150" height="40" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="255" y="35" fill="black" font-size="20" text-anchor="middle">Puzzles</text>
+    <rect x="340" y="10" width="150" height="40" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="415" y="35" fill="black" font-size="20" text-anchor="middle">Settings</text>
+
+    <!-- Chess Board (tighter) -->
+    <rect x="20" y="70" width="728" height="500" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+
+    <!-- New Bottom Group Widget -->
+    <!-- Clock Widget -->
+    <rect x="20" y="580" width="350" height="60" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <rect x="378" y="580" width="350" height="60" fill="#000000" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="195" y="615" fill="black" font-size="16" text-anchor="middle">05:00</text>
+    <text x="553" y="615" fill="white" font-size="16" text-anchor="middle">05:00</text>
+
+    <!-- Chat and Move History Widgets -->
+    <rect x="20" y="650" width="350" height="200" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="195" y="750" fill="black" font-size="16" text-anchor="middle">Chat</text>
+    <rect x="378" y="650" width="350" height="200" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="553" y="750" fill="black" font-size="16" text-anchor="middle">Move History</text>
+
+    <!-- Navigation Controls (smaller buttons at the bottom) -->
+    <rect x="20" y="860" width="350" height="60" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="195" y="895" fill="black" font-size="20" text-anchor="middle">Previous</text>
+    <rect x="378" y="860" width="350" height="60" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="553" y="895" fill="black" font-size="20" text-anchor="middle">Next</text>
+</svg>

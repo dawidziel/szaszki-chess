@@ -1,4 +1,7 @@
 import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pytest
 from PyQt6.QtWidgets import QApplication
 from custom_widgets import ClockWidget

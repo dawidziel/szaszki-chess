@@ -85,6 +85,10 @@ class ChessBoardWidget(QWidget):
         if not self.isEnabled():
             return
 
+        # Check if it's our turn based on board state
+        if self.main_window.playing_as_white != self.board.turn:
+            return
+
         square_size = self.width() // 8
         file = int(event.position().x()) // square_size
         rank = 7 - (int(event.position().y()) // square_size)
@@ -97,48 +101,27 @@ class ChessBoardWidget(QWidget):
         else:
             move = chess.Move(self.selected_square, square)
             if self.main_window.solving_puzzle:
-                # Check if the move is legal
                 if move in self.board.legal_moves:
-                    # Check if the move is the allowed move
                     if self.main_window.allowed_moves and move in self.main_window.allowed_moves:
-                        # Valid move, push it to the board
+                        # Valid move: update board and history
                         self.board.push(move)
-                        self.main_window.move_list.append(
-                            f"{'White' if self.board.turn == chess.BLACK else 'Black'}: {move.uci()}"
-                        )
+                        self.main_window.move_list.append(f"Puzzle move: {move.uci()}")
                         self.main_window.game_states.append(self.board.fen())
-                        self.main_window.current_move_index += 1
-                        if self.main_window.current_move_index < len(self.main_window.solution_moves):
-                            self.main_window.allowed_moves = [self.main_window.solution_moves[self.main_window.current_move_index]]
-                            # Auto-play the next move after a short delay.
-                            self.main_window.safe_timer_start(500, self.main_window.auto_play_next_move)
-                        else:
-                            self.main_window.allowed_moves = None
-                            self.main_window.chat_box.appendPlainText(
-                                f"Congratulation you solved the puzzle! Puzzle rating: {self.main_window.puzzle_rating}"
-                            )
-                            # Show Next Puzzle button
-                            self.main_window.layout_manager.next_puzzle_button.setVisible(True)
                     else:
-                        # Incorrect move: do not update the board; let white try again.
                         self.main_window.chat_box.appendPlainText(
-                            f"Incorrect move. Puzzle rating: {self.main_window.puzzle_rating}. White, please try again."
+                            f"Incorrect move. Puzzle rating: {self.main_window.puzzle_rating}. Please try again."
                         )
                         self.main_window.puzzle_failed = True
-                        # Show Next Puzzle button on failure if desired
-                        self.main_window.layout_manager.next_puzzle_button.setVisible(True)
-                else:
-                    # Illegal move, ignore
-                    pass
+                        if self.main_window.layout_manager.next_puzzle_button:
+                            self.main_window.layout_manager.next_puzzle_button.setVisible(True)
+                # else: ignore illegal move
             else:
                 if move in self.board.legal_moves and (not self.main_window.allowed_moves or move in self.main_window.allowed_moves):
                     self.board.push(move)
                     logging.debug(f"Player move: {move.uci()}")
-                    if not self.main_window.solving_puzzle:
-                        self.main_window.game_moves.append(move)
-                        self.main_window.current_move_pointer = len(self.main_window.game_moves)
-                        self.main_window.game_states.append(self.board.fen())
-                    self.main_window.current_move_index += 1
+                    self.main_window.game_moves.append(move)
+                    self.main_window.current_move_pointer = len(self.main_window.game_moves)
+                    self.main_window.game_states.append(self.board.fen())
                     self.main_window.switch_turn()
                     self.main_window.check_game_result()
                     if self.main_window.playing_vs_bot and not self.main_window.solving_puzzle:
@@ -152,6 +135,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Chess")
 
         # Remove layout selector and just initialize components
+        self.playing_as_white = True  # Default value, will be updated when game starts
         self.board = chess.Board()
         self.board_widget = ChessBoardWidget(self.board, self)
         self.lichess_handler = LichessHandler(lichess_token)
@@ -260,6 +244,19 @@ class MainWindow(QMainWindow):
         self.prev_button.clicked.connect(self.prev_move)
         self.hint_button.clicked.connect(self.ask_for_hint)  # Changed from next_move to ask_for_hint
 
+        # Navigation buttons
+        self.prev_button = QPushButton("Previous")
+        self.prev_button.setFont(QFont("Palatino", 32))
+        self.prev_button.setFixedHeight(80)
+        self.prev_button.setStyleSheet("border: 2px dashed black; background-color: white;")
+        self.prev_button.clicked.connect(self.prev_move)
+
+        self.next_button = QPushButton("Next")
+        self.next_button.setFont(QFont("Palatino", 32))
+        self.next_button.setFixedHeight(80)
+        self.next_button.setStyleSheet("border: 2px dashed black; background-color: white;")
+        self.next_button.clicked.connect(self.next_move)
+
     def setup_timer_labels(self):
         for label in [self.white_timer_label, self.black_timer_label]:
             label.setFont(QFont("Palatino", 32))
@@ -300,42 +297,45 @@ class MainWindow(QMainWindow):
         self.allowed_moves = None  # Reset allowed moves for new game
 
     def play_vs_bot(self):
-        bot_username = "stockfish"  # Example bot username
+        bot_username = "chessosity"  # Example bot username
         game_id = self.lichess_handler.create_bot_game(bot_username, time_control='5+0', rated=False)
         if game_id:
-            self.board.reset()
+            # Set some initial game parameters
             self.playing_vs_bot = True
             self.white_time = 300  # 5 minutes
             self.black_time = 300  # 5 minutes
-            self.current_turn = chess.WHITE
             self.timer.start(1000)
             self.board_widget.setEnabled(True)
             self.allowed_moves = None  # Allow all legal moves in bot game
-            self.board_widget.update()
             logging.debug(f"Started bot game with ID: {game_id}")
             self.solving_puzzle = False  # Ensure puzzle mode is off
+
+            # Start streaming game events and processing them via handle_game_event()
+            self.lichess_handler.run_game_stream(self.handle_game_event)
         else:
             self.show_result("Failed to create bot game.")
 
     def send_move_to_bot(self, move):
         """Send move to bot in a separate thread"""
         from PyQt6.QtCore import QThread, QObject, pyqtSignal
-        
+
         class BotWorker(QObject):
             finished = pyqtSignal()
-            
+
             def __init__(self, handler, game_id, move):
                 super().__init__()
                 self.handler = handler
                 self.game_id = game_id
                 self.move = move
-                
+
             def run(self):
                 try:
                     self.handler.make_move_bot(self.move)
+                except Exception as e:
+                    logging.error(f"Error sending move to bot: {e}")
                 finally:
                     self.finished.emit()
-        
+
         self.bot_thread = QThread()
         self.bot_worker = BotWorker(self.lichess_handler, self.lichess_handler.game_id, move)
         self.bot_worker.moveToThread(self.bot_thread)
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
             self.white_clock.time = self.format_time(self.white_time)
         else:
             self.black_clock.time = self.format_time(self.black_time)
-        self.white_clock.update() 
+        self.white_clock.update()
         self.black_clock.update()
 
     def switch_turn(self):
@@ -428,7 +428,7 @@ class MainWindow(QMainWindow):
         puzzle = self.lichess_handler.fetch_daily_puzzle()
         if not puzzle:
             return
-            
+
         self.puzzle_rating = puzzle['puzzle']['rating']
         pgn = puzzle['game']['pgn']
         game = chess.pgn.read_game(io.StringIO(pgn))
@@ -581,11 +581,11 @@ class MainWindow(QMainWindow):
         try:
             # Run blocking network call in a thread
             from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
-            
+
             class PuzzleLoader(QObject):
                 loaded = pyqtSignal(object)
                 error = pyqtSignal(str)
-                
+
                 @pyqtSlot()
                 def load(self):
                     try:
@@ -593,7 +593,7 @@ class MainWindow(QMainWindow):
                         self.loaded.emit(puzzle)
                     except Exception as e:
                         self.error.emit(str(e))
-            
+
             self.puzzle_loader = QThread()
             self.loader_worker = PuzzleLoader()
             self.loader_worker.handler = self.lichess_handler
@@ -604,7 +604,7 @@ class MainWindow(QMainWindow):
             self.loader_worker.loaded.connect(self.puzzle_loader.quit)
             self.loader_worker.error.connect(self.puzzle_loader.quit)
             self.puzzle_loader.start()
-            
+
         except Exception as e:
             logging.error(f"Puzzle loading failed: {e}")
             self.chat_box.appendPlainText("Error loading puzzle. Please try again.")
@@ -613,7 +613,7 @@ class MainWindow(QMainWindow):
         """Handle loaded puzzle data in main thread"""
         if not puzzle:
             return
-            
+
         self.puzzle_rating = puzzle['puzzle']['rating']
         pgn = puzzle['game']['pgn']
         game = chess.pgn.read_game(io.StringIO(pgn))
@@ -636,6 +636,115 @@ class MainWindow(QMainWindow):
             Qt.ConnectionType.QueuedConnection,
             QMetaObject.ArgumentList([interval, callback])
         )
+
+    def handle_game_event(self, event):
+        """
+        Thread-safe callback to handle each event from the game stream.
+        Uses QTimer.singleShot to post the event processing onto the main (GUI) thread.
+        """
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self._handle_game_event(event))
+
+    def _handle_game_event(self, event):
+        event_type = event.get('type')
+        logging.debug(f"Handling game event type: {event_type}")
+
+        if event_type == 'gameFull':
+            # Get player information
+            white_info = event.get('white', {})
+            black_info = event.get('black', {})
+
+            # Determine player color and get ratings
+            self.playing_as_white = white_info.get('id') == self.lichess_handler.get_user_id()
+            player_color = 'White' if self.playing_as_white else 'Black'
+            opponent_type = 'AI' if 'aiLevel' in (black_info if self.playing_as_white else white_info) else 'Human'
+
+            # Get ratings
+            player_rating = white_info.get('rating') if self.playing_as_white else black_info.get('rating')
+            ai_level = (black_info if self.playing_as_white else white_info).get('aiLevel', 'Unknown')
+
+            # Display game info in chat
+            game_info = (
+                f"Game started!\n"
+                f"You are playing as {player_color}\n"
+                f"Your rating: {player_rating or 'Unrated'}\n"
+                f"Opponent: {opponent_type} Level {ai_level}"
+            )
+            self.chat_box.appendPlainText(game_info)
+
+            # Set board orientation
+            self.board_widget.flip_board = not self.playing_as_white
+            self.board_widget.update()
+            logging.debug(f"Board orientation: {'Flipped' if self.board_widget.flip_board else 'Normal'}")
+
+            # Set the board FEN from the event
+            new_fen = event.get('state', {}).get('fen') or event.get('initialFen')
+            if new_fen == "startpos":
+                new_fen = chess.STARTING_FEN
+            if new_fen:
+                self.board.set_fen(new_fen)
+                self.board_widget.update()
+                logging.debug(f"Board updated with FEN: {new_fen}")
+
+            # Process any initial moves
+            initial_state = event.get('state', {})
+            if 'moves' in initial_state and initial_state['moves']:
+                self._process_moves(initial_state['moves'])
+
+            # Enable board only if it's our turn
+            is_our_turn = (self.board.turn == self.playing_as_white)
+            self.board_widget.setEnabled(is_our_turn)
+            logging.debug(f"Board enabled: {is_our_turn}")
+
+        elif event_type == 'gameState':
+            new_fen = event.get('fen')
+            if new_fen:
+                self.board.set_fen(new_fen)
+                self.board_widget.update()
+                logging.debug(f"Game state updated: {new_fen}")
+            if 'moves' in event:
+                moves = event['moves'].split()
+                self.move_history.setPlainText("\n".join(moves))
+        else:
+            logging.debug(f"Unhandled game event: {event}")
+
+    def _process_moves(self, moves_str: str):
+        """
+        Process a space-separated string of moves, update the board and move history.
+        """
+        if not moves_str:
+            return
+
+        moves = moves_str.split()
+        logging.debug(f"Processing moves: {moves}")
+
+        # Reset board to starting position
+        self.board.reset()
+
+        # Apply all moves
+        formatted_moves = []
+        for i, move in enumerate(moves):
+            try:
+                chess_move = chess.Move.from_uci(move)
+                self.board.push(chess_move)
+                # Format move for move history (e.g. "1. e4 e5")
+                if i % 2 == 0:
+                    formatted_moves.append(f"{i//2 + 1}. {move}")
+                else:
+                    formatted_moves[-1] = f"{formatted_moves[-1]} {move}"
+            except ValueError as e:
+                logging.error(f"Invalid move {move}: {e}")
+
+        # Update UI
+        self.board_widget.update()
+        move_history_text = "\n".join(formatted_moves)
+        self.move_history.setPlainText(move_history_text)
+        # Scroll to bottom of move history
+        self.move_history.verticalScrollBar().setValue(
+            self.move_history.verticalScrollBar().maximum()
+        )
+        logging.debug(f"Board and move history updated with moves: {moves}")
+        logging.debug(f"Move history text:\n{move_history_text}")
 
 def main():
     import os

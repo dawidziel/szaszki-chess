@@ -30,7 +30,7 @@ class LayoutManager:
                 'button_size': (400, 80),
                 'clock_size': (400, 120),
                 'margin': (20, 40, 20, 20),
-                'top_bar_visible': False,       
+                'top_bar_visible': False,
                 'create_layout': self.create_horizontal_layout
             },
             'layout_1440x1920_vertical': {
@@ -101,7 +101,11 @@ class LayoutManager:
         else:
             self.main_window.showNormal()
 
-        self.main_window.board_widget.setFixedSize(*bs)
+        if hasattr(self.main_window.board_widget, "setFixedSize"):
+            self.main_window.board_widget.setFixedSize(*bs)
+        else:
+            logging.warning("board_widget does not support setFixedSize")
+
         self.main_window.move_history.setFixedSize(*hs)
 
         for btn_widget in [self.main_window.prev_button, self.main_window.hint_button]:
@@ -116,8 +120,11 @@ class LayoutManager:
             self.create_horizontal_layout()
 
     def create_top_buttons(self):
-        # Build an array of top-menu buttons matching the SVG design.
         buttons = []
+        # Add navigation buttons styled with dotted borders
+        buttons.append(self.main_window.prev_button)
+        buttons.append(self.main_window.next_button)
+        # ...existing buttons...
         if not self.new_game_button:
             self.new_game_button = QPushButton("New Game")
             self.new_game_button.setFont(QFont("Palatino", 14))
@@ -180,38 +187,50 @@ class LayoutManager:
         left_panel.addWidget(self.main_window.board_widget)
         main_wrapper.addLayout(left_panel, stretch=2)
 
-        # Right panel: Contains the top menu (extra buttons), chat & move history,
-        # then player info and clocks at the bottom.
+        # Right panel: Contains top menu, then move history with navigation buttons and chat & info.
         right_panel = QVBoxLayout()
-        
-        # --- Top Menu (extra buttons per SVG design) ---
+
+        # --- Top Menu (extra buttons except navigation) ---
         menu_layout = QHBoxLayout()
-        for btn in self.create_top_buttons():
+        # Exclude prev/next buttons from top menu now.
+        for btn in self.create_top_buttons()[2:]:
             menu_layout.addWidget(btn)
         right_panel.addLayout(menu_layout)
-        
-        # --- Chat and Move History ---
-        text_container = QVBoxLayout()
-        text_container.addWidget(self.main_window.move_history)
-        text_container.addWidget(self.main_window.chat_box)
-        right_panel.addLayout(text_container, stretch=1)
-        
+
+        # --- Move History with Navigation Buttons ---
+        history_container = QHBoxLayout()
+        # Move History widget takes available horizontal space.
+        history_container.addWidget(self.main_window.move_history, stretch=1)
+
+        # Navigation buttons container (square buttons)
+        nav_buttons = QVBoxLayout()
+        # Set fixed square size (example: 80x80)
+        self.main_window.prev_button.setFixedSize(80, 80)
+        self.main_window.next_button.setFixedSize(80, 80)
+        nav_buttons.addWidget(self.main_window.prev_button)
+        nav_buttons.addWidget(self.main_window.next_button)
+        history_container.addLayout(nav_buttons)
+        right_panel.addLayout(history_container)
+
+        # --- Chat Box (below move history) ---
+        right_panel.addWidget(self.main_window.chat_box, stretch=0)
+
         # --- Player Info ---
         right_panel.addWidget(self.main_window.player_info)
-        
+
         # --- Clocks at Bottom (flat layout) ---
         clocks_layout = QHBoxLayout()
         clocks_layout.setSpacing(20)
         clocks_layout.addWidget(self.main_window.white_clock)
         clocks_layout.addWidget(self.main_window.black_clock)
         right_panel.addLayout(clocks_layout)
-        
+
         # Add Next Puzzle button at bottom right
         button_container = QHBoxLayout()
         button_container.addStretch()
         button_container.addWidget(self.next_puzzle_button)
         right_panel.addLayout(button_container)
-        
+
         main_wrapper.addLayout(right_panel, stretch=1)
         container.setLayout(main_wrapper)
         self.main_window.setCentralWidget(container)
@@ -229,13 +248,13 @@ class LayoutManager:
         # Middle section with horizontal split.
         middle_layout = QHBoxLayout()
         middle_layout.setSpacing(20)
-        
+
         # Left column: Move history and chat.
         text_container = QVBoxLayout()
         text_container.addWidget(self.main_window.move_history)
         text_container.addWidget(self.main_window.chat_box)
         middle_layout.addLayout(text_container, stretch=2)
-        
+
         # Right column: Top menu, player info, then clocks.
         right_column = QVBoxLayout()
         menu_layout = QHBoxLayout()
@@ -248,15 +267,15 @@ class LayoutManager:
         clocks_layout.addWidget(self.main_window.white_clock)
         clocks_layout.addWidget(self.main_window.black_clock)
         right_column.addLayout(clocks_layout)
-        
+
         # Add Next Puzzle button at bottom right
         button_container = QHBoxLayout()
         button_container.addStretch()
         button_container.addWidget(self.next_puzzle_button)
         right_column.addLayout(button_container)
-        
+
         middle_layout.addLayout(right_column, stretch=1)
         main_wrapper.addLayout(middle_layout, stretch=1)
-        
+
         container.setLayout(main_wrapper)
         self.main_window.setCentralWidget(container)

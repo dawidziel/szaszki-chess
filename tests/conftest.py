@@ -4,6 +4,8 @@ import sys
 
 @pytest.fixture(scope="session")
 def qapp():
-    app = QApplication(sys.argv)
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
     yield app
     app.quit()
